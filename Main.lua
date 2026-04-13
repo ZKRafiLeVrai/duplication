@@ -1,11 +1,11 @@
--- AUTO DUP VOL - PROTÉGÉ PAR KEY
+-- AUTO DUP VOL - PROTÉGÉ PAR KEY (CORRIGÉ)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 
--- ===== SYSTÈME DE KEY =====
-local VALID_KEY = "123"
+-- ===== SYSTÈME DE KEY (CORRIGÉ) =====
+local VALID_KEY = "5hi_gi737.yueu.6269"  -- Key simplifiée sans caractères spéciaux
 local keyAccepted = false
 
 -- Fonction pour vérifier la key
@@ -24,6 +24,7 @@ local LoginTitle = Instance.new("TextLabel")
 local KeyBox = Instance.new("TextBox")
 local SubmitButton = Instance.new("TextButton")
 local ErrorLabel = Instance.new("TextLabel")
+local KeyHint = Instance.new("TextLabel")
 
 LoginGui.Name = "LoginGui"
 LoginGui.Parent = Player:WaitForChild("PlayerGui")
@@ -34,7 +35,7 @@ LoginFrame.Parent = LoginGui
 LoginFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 LoginFrame.BorderSizePixel = 0
 LoginFrame.Position = UDim2.new(0.5, 0, 0.4, 0)
-LoginFrame.Size = UDim2.new(0, 300, 0, 180)
+LoginFrame.Size = UDim2.new(0, 320, 0, 220)
 LoginFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 
 local LoginCorner = Instance.new("UICorner")
@@ -50,18 +51,28 @@ LoginTitle.Name = "LoginTitle"
 LoginTitle.Parent = LoginFrame
 LoginTitle.BackgroundTransparency = 1
 LoginTitle.Size = UDim2.new(1, 0, 0, 30)
-LoginTitle.Position = UDim2.new(0, 0, 0.1, 0)
+LoginTitle.Position = UDim2.new(0, 0, 0.08, 0)
 LoginTitle.Text = "🔑 ENTRER LA KEY 🔑"
 LoginTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 LoginTitle.TextSize = 16
 LoginTitle.Font = Enum.Font.GothamBold
+
+KeyHint.Name = "KeyHint"
+KeyHint.Parent = LoginFrame
+KeyHint.BackgroundTransparency = 1
+KeyHint.Size = UDim2.new(1, 0, 0, 20)
+KeyHint.Position = UDim2.new(0, 0, 0.25, 0)
+KeyHint.Text = "Key: 5hi_gi737.yueu.6269"
+KeyHint.TextColor3 = Color3.fromRGB(150, 150, 150)
+KeyHint.TextSize = 11
+KeyHint.Font = Enum.Font.Gotham
 
 KeyBox.Name = "KeyBox"
 KeyBox.Parent = LoginFrame
 KeyBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 KeyBox.BorderSizePixel = 0
 KeyBox.Size = UDim2.new(0.8, 0, 0, 35)
-KeyBox.Position = UDim2.new(0.1, 0, 0.35, 0)
+KeyBox.Position = UDim2.new(0.1, 0, 0.4, 0)
 KeyBox.PlaceholderText = "Entre ta key ici..."
 KeyBox.Text = ""
 KeyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -77,7 +88,7 @@ SubmitButton.Name = "SubmitButton"
 SubmitButton.Parent = LoginFrame
 SubmitButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
 SubmitButton.Size = UDim2.new(0.6, 0, 0, 35)
-SubmitButton.Position = UDim2.new(0.2, 0, 0.6, 0)
+SubmitButton.Position = UDim2.new(0.2, 0, 0.65, 0)
 SubmitButton.Text = "VALIDER"
 SubmitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 SubmitButton.TextSize = 14
@@ -91,7 +102,7 @@ ErrorLabel.Name = "ErrorLabel"
 ErrorLabel.Parent = LoginFrame
 ErrorLabel.BackgroundTransparency = 1
 ErrorLabel.Size = UDim2.new(1, 0, 0, 20)
-ErrorLabel.Position = UDim2.new(0, 0, 0.85, 0)
+ErrorLabel.Position = UDim2.new(0, 0, 0.88, 0)
 ErrorLabel.Text = ""
 ErrorLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 ErrorLabel.TextSize = 11
@@ -275,7 +286,7 @@ function loadMainGUI()
         local ourChannel = Synchronizer:Get(Player)
         if not ourChannel then return end
         local ourPodiums = ourChannel:Get("AnimalPodiums") or {}
-        
+
         for _, slot in pairs({1, 2}) do
             if ourPodiums[slot] and ourPodiums[slot] ~= "Empty" then
                 local emptySlot = FindEmptySlot()
@@ -322,7 +333,7 @@ function loadMainGUI()
         end
         Player:SetAttribute("Stealing", false)
         Player:SetAttribute("StealingIndex", "")
-        
+
         if workspace.CurrentCamera then
             for _, child in pairs(workspace.CurrentCamera:GetChildren()) do
                 if child:IsA("Model") and child.PrimaryPart then
@@ -337,32 +348,32 @@ function loadMainGUI()
             StatusLabel.Text = "BASE PLEINE !"
             return false
         end
-        
+
         FreeSlots1and2()
-        
+
         if StealStartRemote and plotModel and podiumIndex then
             local timestamp = workspace:GetServerTimeNow()
             pcall(function() StealStartRemote:FireServer(timestamp, "c262398d-68e3-4499-8bea-99766bf11686", plotModel.Name, podiumIndex) end)
             pcall(function() StealStartRemote:FireServer(timestamp, "579e6c26-5a80-407d-9488-0f84752e8f1f", plotModel.Name, podiumIndex) end)
         end
-        
+
         task.wait(0.08)
-        
+
         if GrabRemote then
             for i = 1, 50 do
                 pcall(function() GrabRemote:FireServer("Place", i) end)
             end
         end
-        
+
         if StealCompleteRemote then
             pcall(function() StealCompleteRemote:FireServer("7799aa8a-03f9-4df1-ab0f-b6df84f6b36c") end)
         end
-        
+
         StopStealAnimation()
-        
+
         dupeCount = dupeCount + 1
         CountLabel.Text = tostring(dupeCount)
-        
+
         return true
     end
 
@@ -372,7 +383,7 @@ function loadMainGUI()
                 task.wait(0.01)
                 continue
             end
-            
+
             if IsBaseFull() then
                 StatusLabel.Text = "BASE PLEINE !"
                 autoDupEnabled = false
@@ -380,16 +391,16 @@ function loadMainGUI()
                 ToggleButton.Text = "DÉMARRER"
                 break
             end
-            
+
             local plotModel, podiumIndex = FindAnimalToSteal()
-            
+
             if plotModel and podiumIndex then
                 isProcessing = true
                 ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
                 StatusLabel.Text = "DUPLICATION..."
-                
+
                 PerformDupe(plotModel, podiumIndex)
-                
+
                 isProcessing = false
                 task.wait(DUP_DELAY)
             else
@@ -398,7 +409,7 @@ function loadMainGUI()
                 task.wait(0.2)
             end
         end
-        
+
         StatusLabel.Text = "Arrêté"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
         ToggleButton.Text = "DÉMARRER"
@@ -406,18 +417,18 @@ function loadMainGUI()
 
     ToggleButton.MouseButton1Click:Connect(function()
         autoDupEnabled = not autoDupEnabled
-        
+
         if autoDupEnabled then
             if IsBaseFull() then
                 StatusLabel.Text = "BASE PLEINE !"
                 autoDupEnabled = false
                 return
             end
-            
+
             ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
             ToggleButton.Text = "ARRÊTER"
             StatusLabel.Text = "En marche..."
-            
+
             task.spawn(AutoDupLoop)
         else
             ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
@@ -430,18 +441,18 @@ function loadMainGUI()
         if gpe then return end
         if input.KeyCode == Enum.KeyCode.V then
             autoDupEnabled = not autoDupEnabled
-            
+
             if autoDupEnabled then
                 if IsBaseFull() then
                     StatusLabel.Text = "BASE PLEINE !"
                     autoDupEnabled = false
                     return
                 end
-                
+
                 ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
                 ToggleButton.Text = "ARRÊTER"
                 StatusLabel.Text = "En marche..."
-                
+
                 task.spawn(AutoDupLoop)
             else
                 ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
