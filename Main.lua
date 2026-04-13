@@ -1,11 +1,12 @@
--- AUTO DUP VOL - PROTÉGÉ PAR KEY (CORRIGÉ)
+-- AUTO DUP VOL - PROTÉGÉ PAR KEY (AVEC BOUTON DISCORD)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 
--- ===== SYSTÈME DE KEY (CORRIGÉ) =====
-local VALID_KEY = "5hi_gi737.yueu.6269"  -- Key simplifiée sans caractères spéciaux
+-- ===== SYSTÈME DE KEY =====
+local VALID_KEY = "5hi_gi737.yueu.6269"
+local DISCORD_INVITE = "https://discord.gg/XdBdXWbP"
 local keyAccepted = false
 
 -- Fonction pour vérifier la key
@@ -24,7 +25,7 @@ local LoginTitle = Instance.new("TextLabel")
 local KeyBox = Instance.new("TextBox")
 local SubmitButton = Instance.new("TextButton")
 local ErrorLabel = Instance.new("TextLabel")
-local KeyHint = Instance.new("TextLabel")
+local DiscordButton = Instance.new("TextButton")
 
 LoginGui.Name = "LoginGui"
 LoginGui.Parent = Player:WaitForChild("PlayerGui")
@@ -35,7 +36,7 @@ LoginFrame.Parent = LoginGui
 LoginFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 LoginFrame.BorderSizePixel = 0
 LoginFrame.Position = UDim2.new(0.5, 0, 0.4, 0)
-LoginFrame.Size = UDim2.new(0, 320, 0, 220)
+LoginFrame.Size = UDim2.new(0, 340, 0, 260)
 LoginFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 
 local LoginCorner = Instance.new("UICorner")
@@ -57,22 +58,45 @@ LoginTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 LoginTitle.TextSize = 16
 LoginTitle.Font = Enum.Font.GothamBold
 
-KeyHint.Name = "KeyHint"
-KeyHint.Parent = LoginFrame
-KeyHint.BackgroundTransparency = 1
-KeyHint.Size = UDim2.new(1, 0, 0, 20)
-KeyHint.Position = UDim2.new(0, 0, 0.25, 0)
-KeyHint.Text = "Get The key on discord"
-KeyHint.TextColor3 = Color3.fromRGB(150, 150, 150)
-KeyHint.TextSize = 11
-KeyHint.Font = Enum.Font.Gotham
+DiscordButton.Name = "DiscordButton"
+DiscordButton.Parent = LoginFrame
+DiscordButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+DiscordButton.Size = UDim2.new(0.85, 0, 0, 40)
+DiscordButton.Position = UDim2.new(0.075, 0, 0.23, 0)
+DiscordButton.Text = "📱 Rejoindre le Discord"
+DiscordButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+DiscordButton.TextSize = 14
+DiscordButton.Font = Enum.Font.GothamBold
+
+local DiscordCorner = Instance.new("UICorner")
+DiscordCorner.CornerRadius = UDim.new(0, 6)
+DiscordCorner.Parent = DiscordButton
+
+-- Fonction pour copier le lien Discord
+local function copyDiscordLink()
+    if setclipboard then
+        setclipboard(DISCORD_INVITE)
+        DiscordButton.Text = "✅ Lien copié !"
+        DiscordButton.BackgroundColor3 = Color3.fromRGB(67, 181, 129)
+        task.wait(2)
+        DiscordButton.Text = "📱 Rejoindre le Discord"
+        DiscordButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+    else
+        -- Fallback si setclipboard n'existe pas
+        DiscordButton.Text = "❌ Copie manuelle"
+        task.wait(2)
+        DiscordButton.Text = "📱 Rejoindre le Discord"
+    end
+end
+
+DiscordButton.MouseButton1Click:Connect(copyDiscordLink)
 
 KeyBox.Name = "KeyBox"
 KeyBox.Parent = LoginFrame
 KeyBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 KeyBox.BorderSizePixel = 0
-KeyBox.Size = UDim2.new(0.8, 0, 0, 35)
-KeyBox.Position = UDim2.new(0.1, 0, 0.4, 0)
+KeyBox.Size = UDim2.new(0.85, 0, 0, 40)
+KeyBox.Position = UDim2.new(0.075, 0, 0.45, 0)
 KeyBox.PlaceholderText = "Entre ta key ici..."
 KeyBox.Text = ""
 KeyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -87,8 +111,8 @@ KeyCorner.Parent = KeyBox
 SubmitButton.Name = "SubmitButton"
 SubmitButton.Parent = LoginFrame
 SubmitButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-SubmitButton.Size = UDim2.new(0.6, 0, 0, 35)
-SubmitButton.Position = UDim2.new(0.2, 0, 0.65, 0)
+SubmitButton.Size = UDim2.new(0.7, 0, 0, 40)
+SubmitButton.Position = UDim2.new(0.15, 0, 0.68, 0)
 SubmitButton.Text = "VALIDER"
 SubmitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 SubmitButton.TextSize = 14
