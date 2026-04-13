@@ -1,4 +1,4 @@
--- AUTO DUP VOL - PROTÉGÉ PAR KEY (AVEC BOUTON DISCORD)
+-- AUTO DUP VOL - CORRIGÉ (Duplique l'animal ciblé uniquement)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
@@ -9,7 +9,6 @@ local VALID_KEY = "5hi_gi737.yueu.6269"
 local DISCORD_INVITE = "https://discord.gg/XdBdXWbP"
 local keyAccepted = false
 
--- Fonction pour vérifier la key
 local function checkKey(inputKey)
     if inputKey == VALID_KEY then
         keyAccepted = true
@@ -72,7 +71,6 @@ local DiscordCorner = Instance.new("UICorner")
 DiscordCorner.CornerRadius = UDim.new(0, 6)
 DiscordCorner.Parent = DiscordButton
 
--- Fonction pour copier le lien Discord
 local function copyDiscordLink()
     if setclipboard then
         setclipboard(DISCORD_INVITE)
@@ -81,11 +79,6 @@ local function copyDiscordLink()
         task.wait(2)
         DiscordButton.Text = "📱 Rejoindre le Discord"
         DiscordButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
-    else
-        -- Fallback si setclipboard n'existe pas
-        DiscordButton.Text = "❌ Copie manuelle"
-        task.wait(2)
-        DiscordButton.Text = "📱 Rejoindre le Discord"
     end
 end
 
@@ -132,7 +125,6 @@ ErrorLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 ErrorLabel.TextSize = 11
 ErrorLabel.Font = Enum.Font.Gotham
 
--- Fonction de validation
 local function onSubmit()
     local inputKey = KeyBox.Text
     if checkKey(inputKey) then
@@ -154,9 +146,8 @@ KeyBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- ===== GUI PRINCIPAL =====
+-- ===== GUI PRINCIPAL (CORRIGÉ) =====
 function loadMainGUI()
-    -- Trouver les RemoteEvents
     local function FindRemoteByName(remoteName)
         for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
             if obj:IsA("RemoteEvent") and obj.Name == remoteName then
@@ -170,7 +161,7 @@ function loadMainGUI()
     local StealCompleteRemote = FindRemoteByName("RE/5c8f0dd0-0f9e-44ba-8f9b-197958b661ab")
     local StealStartRemote = FindRemoteByName("RE/5aa39ea1-0c65-4fcf-aff9-b18a7ef277c3")
 
-    print("=== AUTO DUP CHARGÉ ===")
+    print("=== AUTO DUP CORRIGÉ ===")
     print("GrabRemote:", GrabRemote ~= nil)
     print("StealCompleteRemote:", StealCompleteRemote ~= nil)
     print("StealStartRemote:", StealStartRemote ~= nil)
@@ -183,7 +174,7 @@ function loadMainGUI()
     local ToggleButton = Instance.new("TextButton")
     local StatusLabel = Instance.new("TextLabel")
     local CountLabel = Instance.new("TextLabel")
-    local SpeedLabel = Instance.new("TextLabel")
+    local TargetLabel = Instance.new("TextLabel")
 
     ScreenGui.Name = "AutoDupGUI"
     ScreenGui.Parent = Player:WaitForChild("PlayerGui")
@@ -194,7 +185,7 @@ function loadMainGUI()
     MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     MainFrame.BorderSizePixel = 0
     MainFrame.Position = UDim2.new(0.5, 0, 0.4, 0)
-    MainFrame.Size = UDim2.new(0, 240, 0, 150)
+    MainFrame.Size = UDim2.new(0, 260, 0, 170)
     MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     MainFrame.Active = true
     MainFrame.Draggable = true
@@ -233,7 +224,7 @@ function loadMainGUI()
     ToggleButton.Parent = MainFrame
     ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
     ToggleButton.Size = UDim2.new(0.85, 0, 0, 40)
-    ToggleButton.Position = UDim2.new(0.075, 0, 0.25, 0)
+    ToggleButton.Position = UDim2.new(0.075, 0, 0.2, 0)
     ToggleButton.Text = "DÉMARRER"
     ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     ToggleButton.TextSize = 16
@@ -243,31 +234,31 @@ function loadMainGUI()
     ButtonCorner.CornerRadius = UDim.new(0, 6)
     ButtonCorner.Parent = ToggleButton
 
+    TargetLabel.Name = "TargetLabel"
+    TargetLabel.Parent = MainFrame
+    TargetLabel.BackgroundTransparency = 1
+    TargetLabel.Size = UDim2.new(1, 0, 0, 20)
+    TargetLabel.Position = UDim2.new(0, 0, 0.48, 0)
+    TargetLabel.Text = "Cible: Aucune"
+    TargetLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+    TargetLabel.TextSize = 11
+    TargetLabel.Font = Enum.Font.Gotham
+
     CountLabel.Name = "CountLabel"
     CountLabel.Parent = MainFrame
     CountLabel.BackgroundTransparency = 1
     CountLabel.Size = UDim2.new(1, 0, 0, 20)
-    CountLabel.Position = UDim2.new(0, 0, 0.58, 0)
+    CountLabel.Position = UDim2.new(0, 0, 0.62, 0)
     CountLabel.Text = "0"
     CountLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
     CountLabel.TextSize = 18
     CountLabel.Font = Enum.Font.GothamBold
 
-    SpeedLabel.Name = "SpeedLabel"
-    SpeedLabel.Parent = MainFrame
-    SpeedLabel.BackgroundTransparency = 1
-    SpeedLabel.Size = UDim2.new(1, 0, 0, 15)
-    SpeedLabel.Position = UDim2.new(0, 0, 0.72, 0)
-    SpeedLabel.Text = "⚡ ULTRA RAPIDE ⚡"
-    SpeedLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
-    SpeedLabel.TextSize = 10
-    SpeedLabel.Font = Enum.Font.Gotham
-
     StatusLabel.Name = "Status"
     StatusLabel.Parent = MainFrame
     StatusLabel.BackgroundTransparency = 1
-    StatusLabel.Size = UDim2.new(1, 0, 0, 15)
-    StatusLabel.Position = UDim2.new(0, 0, 0.85, 0)
+    StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+    StatusLabel.Position = UDim2.new(0, 0, 0.82, 0)
     StatusLabel.Text = "Prêt"
     StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
     StatusLabel.TextSize = 10
@@ -278,6 +269,7 @@ function loadMainGUI()
     local dupeCount = 0
     local isProcessing = false
     local DUP_DELAY = 0.15
+    local currentTargetAnimal = "Aucune"
 
     -- Fonctions
     local function FindEmptySlot()
@@ -322,25 +314,72 @@ function loadMainGUI()
         end
     end
 
-    local function FindAnimalToSteal()
+    -- TROUVER L'ANIMAL EXACT DEVANT LEQUEL ON SE TROUVE
+    local function FindTargetedAnimal()
+        local character = Player.Character
+        if not character then return nil, nil, nil end
+        
+        local root = character:FindFirstChild("HumanoidRootPart")
+        if not root then return nil, nil, nil end
+        
+        local playerPos = root.Position
+        
+        -- Chercher le ProximityPrompt "Steal" le plus proche
+        local closestPrompt = nil
+        local closestDistance = 15 -- Distance max de détection
+        local closestPlot = nil
+        local closestPodium = nil
+        
         for _, obj in pairs(workspace:GetDescendants()) do
             if obj:IsA("ProximityPrompt") and obj.ActionText == "Steal" and obj.Enabled then
-                local parent = obj.Parent
-                while parent do
-                    if parent:IsA("Model") and parent:GetAttribute("Loaded") then
-                        local plotModel = parent
-                        for _, child in pairs(plotModel.AnimalPodiums:GetChildren()) do
-                            local prompt = child:FindFirstChild("ProximityPrompt", true)
-                            if prompt == obj then
-                                return plotModel, tonumber(child.Name)
+                local promptPos = obj.Parent
+                if promptPos and promptPos:IsA("Attachment") then
+                    promptPos = promptPos.Parent
+                end
+                if promptPos and promptPos:IsA("BasePart") then
+                    local distance = (promptPos.Position - playerPos).Magnitude
+                    if distance < closestDistance then
+                        local parent = obj.Parent
+                        while parent do
+                            if parent:IsA("Model") and parent:GetAttribute("Loaded") then
+                                local plotModel = parent
+                                for _, child in pairs(plotModel.AnimalPodiums:GetChildren()) do
+                                    local prompt = child:FindFirstChild("ProximityPrompt", true)
+                                    if prompt == obj then
+                                        closestPrompt = obj
+                                        closestDistance = distance
+                                        closestPlot = plotModel
+                                        closestPodium = tonumber(child.Name)
+                                        break
+                                    end
+                                end
                             end
+                            parent = parent.Parent
                         end
                     end
-                    parent = parent.Parent
                 end
             end
         end
-        return nil, nil
+        
+        if closestPlot and closestPodium then
+            -- Récupérer le nom de l'animal
+            local animalName = "Animal"
+            pcall(function()
+                local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
+                local plotChannel = Synchronizer:Get(closestPlot.Name)
+                if plotChannel then
+                    local animalList = plotChannel:Get("AnimalList") or {}
+                    local animal = animalList[closestPodium]
+                    if animal and animal.Index then
+                        animalName = animal.Index
+                    end
+                end
+            end)
+            
+            return closestPlot, closestPodium, animalName
+        end
+        
+        return nil, nil, nil
     end
 
     local function StopStealAnimation()
@@ -367,7 +406,7 @@ function loadMainGUI()
         end
     end
 
-    local function PerformDupe(plotModel, podiumIndex)
+    local function PerformDupe(plotModel, podiumIndex, animalName)
         if IsBaseFull() then
             StatusLabel.Text = "BASE PLEINE !"
             return false
@@ -375,6 +414,7 @@ function loadMainGUI()
 
         FreeSlots1and2()
 
+        -- Démarrer le vol sur l'ANIMAL CIBLÉ (pas tous)
         if StealStartRemote and plotModel and podiumIndex then
             local timestamp = workspace:GetServerTimeNow()
             pcall(function() StealStartRemote:FireServer(timestamp, "c262398d-68e3-4499-8bea-99766bf11686", plotModel.Name, podiumIndex) end)
@@ -383,10 +423,9 @@ function loadMainGUI()
 
         task.wait(0.08)
 
+        -- Annuler le vol chez la victime POUR CE PODIUM SPÉCIFIQUE
         if GrabRemote then
-            for i = 1, 50 do
-                pcall(function() GrabRemote:FireServer("Place", i) end)
-            end
+            pcall(function() GrabRemote:FireServer("Place", podiumIndex) end)
         end
 
         if StealCompleteRemote then
@@ -397,6 +436,8 @@ function loadMainGUI()
 
         dupeCount = dupeCount + 1
         CountLabel.Text = tostring(dupeCount)
+        currentTargetAnimal = animalName or "Animal"
+        TargetLabel.Text = "Dernier: " .. currentTargetAnimal
 
         return true
     end
@@ -416,19 +457,21 @@ function loadMainGUI()
                 break
             end
 
-            local plotModel, podiumIndex = FindAnimalToSteal()
+            local plotModel, podiumIndex, animalName = FindTargetedAnimal()
 
             if plotModel and podiumIndex then
                 isProcessing = true
                 ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
                 StatusLabel.Text = "DUPLICATION..."
+                TargetLabel.Text = "Cible: " .. (animalName or "Animal")
 
-                PerformDupe(plotModel, podiumIndex)
+                PerformDupe(plotModel, podiumIndex, animalName)
 
                 isProcessing = false
                 task.wait(DUP_DELAY)
             else
                 StatusLabel.Text = "Approche-toi d'un animal"
+                TargetLabel.Text = "Cible: Aucune"
                 ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 150, 0)
                 task.wait(0.2)
             end
@@ -437,6 +480,7 @@ function loadMainGUI()
         StatusLabel.Text = "Arrêté"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
         ToggleButton.Text = "DÉMARRER"
+        TargetLabel.Text = "Cible: Aucune"
     end
 
     ToggleButton.MouseButton1Click:Connect(function()
@@ -486,6 +530,6 @@ function loadMainGUI()
         end
     end)
 
-    print("✅ AUTO DUP PRÊT !")
-    print("Appuie sur V ou clique pour activer !")
+    print("✅ AUTO DUP CORRIGÉ PRÊT !")
+    print("Approche-toi d'un animal et active !")
 end
