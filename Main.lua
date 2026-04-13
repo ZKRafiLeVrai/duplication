@@ -1,4 +1,4 @@
--- AUTO DUP VOL - FIX SLOTS (Remplit tous les slots libres dans l'ordre)
+-- AUTO DUP VOL - FIX REMPLACEMENT (Conserve tous les animaux)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
@@ -17,7 +17,7 @@ local function checkKey(inputKey)
     return false
 end
 
--- GUI de login
+-- GUI de login (rapide)
 local LoginGui = Instance.new("ScreenGui")
 local LoginFrame = Instance.new("Frame")
 local LoginTitle = Instance.new("TextLabel")
@@ -146,7 +146,7 @@ KeyBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- ===== GUI PRINCIPAL (FIX SLOTS) =====
+-- ===== GUI PRINCIPAL (FIX FINAL) =====
 function loadMainGUI()
     local function FindRemoteByName(remoteName)
         for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
@@ -161,12 +161,8 @@ function loadMainGUI()
     local StealCompleteRemote = FindRemoteByName("RE/5c8f0dd0-0f9e-44ba-8f9b-197958b661ab")
     local StealStartRemote = FindRemoteByName("RE/5aa39ea1-0c65-4fcf-aff9-b18a7ef277c3")
 
-    print("=== AUTO DUP FIX SLOTS ===")
-    print("GrabRemote:", GrabRemote ~= nil)
-    print("StealCompleteRemote:", StealCompleteRemote ~= nil)
-    print("StealStartRemote:", StealStartRemote ~= nil)
+    print("=== AUTO DUP FIX FINAL ===")
 
-    -- GUI
     local ScreenGui = Instance.new("ScreenGui")
     local MainFrame = Instance.new("Frame")
     local TopBar = Instance.new("Frame")
@@ -195,11 +191,6 @@ function loadMainGUI()
     UICorner.CornerRadius = UDim.new(0, 8)
     UICorner.Parent = MainFrame
 
-    local UIStroke = Instance.new("UIStroke")
-    UIStroke.Color = Color3.fromRGB(0, 255, 0)
-    UIStroke.Thickness = 1.5
-    UIStroke.Parent = MainFrame
-
     TopBar.Name = "TopBar"
     TopBar.Parent = MainFrame
     TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -216,7 +207,7 @@ function loadMainGUI()
     TitleLabel.BackgroundTransparency = 1
     TitleLabel.Size = UDim2.new(0.7, 0, 1, 0)
     TitleLabel.Position = UDim2.new(0.15, 0, 0, 0)
-    TitleLabel.Text = "AUTO DUP FIX"
+    TitleLabel.Text = "AUTO DUP FINAL"
     TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     TitleLabel.TextSize = 14
     TitleLabel.Font = Enum.Font.GothamBold
@@ -275,22 +266,20 @@ function loadMainGUI()
     StatusLabel.TextSize = 10
     StatusLabel.Font = Enum.Font.Gotham
 
-    -- Variables
     local autoDupEnabled = false
     local dupeCount = 0
     local isProcessing = false
-    local DUP_DELAY = 0.2
+    local DUP_DELAY = 0.3
+    local usedSlots = {} -- Pour tracker les slots déjà utilisés
 
-    -- Fonction pour trouver le PREMIER slot vide (dans l'ordre 1,2,3...)
     local function FindFirstEmptySlot()
         local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
         local ourChannel = Synchronizer:Get(Player)
         if not ourChannel then return nil end
         local ourPodiums = ourChannel:Get("AnimalPodiums") or {}
         
-        -- Chercher dans l'ordre croissant
         for i = 1, 200 do
-            if ourPodiums[i] == "Empty" or ourPodiums[i] == nil then
+            if (ourPodiums[i] == "Empty" or ourPodiums[i] == nil) and not usedSlots[i] then
                 return i
             end
         end
@@ -329,15 +318,6 @@ function loadMainGUI()
         return maxSlot
     end
 
-    local function MoveAnimal(fromSlot, toSlot)
-        if not GrabRemote then return false end
-        pcall(function() GrabRemote:FireServer("Grab", fromSlot) end)
-        task.wait(0.08)
-        pcall(function() GrabRemote:FireServer("Place", toSlot) end)
-        return true
-    end
-
-    -- Trouver l'animal exact devant lequel on se trouve
     local function FindTargetedAnimal()
         local character = Player.Character
         if not character then return nil, nil, nil end
@@ -346,7 +326,6 @@ function loadMainGUI()
         if not root then return nil, nil, nil end
         
         local playerPos = root.Position
-        
         local closestPlot = nil
         local closestPodium = nil
         local closestDistance = 15
@@ -394,7 +373,6 @@ function loadMainGUI()
                     end
                 end
             end)
-            
             return closestPlot, closestPodium, animalName
         end
         
@@ -415,14 +393,6 @@ function loadMainGUI()
         end
         Player:SetAttribute("Stealing", false)
         Player:SetAttribute("StealingIndex", "")
-
-        if workspace.CurrentCamera then
-            for _, child in pairs(workspace.CurrentCamera:GetChildren()) do
-                if child:IsA("Model") and child.PrimaryPart then
-                    pcall(function() child:Destroy() end)
-                end
-            end
-        end
     end
 
     local function PerformDupe(plotModel, podiumIndex, animalName)
@@ -431,51 +401,50 @@ function loadMainGUI()
             return false
         end
 
-        -- Démarrer le vol sur l'animal ciblé
+        -- Trouver un slot vide et le réserver
+        local targetSlot = FindFirstEmptySlot()
+        if not targetSlot then
+            StatusLabel.Text = "BASE PLEINE !"
+            return false
+        end
+        
+        usedSlots[targetSlot] = true
+        print("Slot réservé:", targetSlot)
+
+        -- Démarrer le vol
         if StealStartRemote and plotModel and podiumIndex then
             local timestamp = workspace:GetServerTimeNow()
             pcall(function() StealStartRemote:FireServer(timestamp, "c262398d-68e3-4499-8bea-99766bf11686", plotModel.Name, podiumIndex) end)
             pcall(function() StealStartRemote:FireServer(timestamp, "579e6c26-5a80-407d-9488-0f84752e8f1f", plotModel.Name, podiumIndex) end)
         end
 
-        task.wait(0.1)
+        task.wait(0.15)
 
-        -- Annuler le vol chez la victime
+        -- Annuler chez la victime
         if GrabRemote then
             pcall(function() GrabRemote:FireServer("Place", podiumIndex) end)
         end
 
         task.wait(0.1)
 
-        -- Compléter le vol (l'animal arrive dans un slot automatiquement)
+        -- Compléter le vol (l'animal arrive)
         if StealCompleteRemote then
             pcall(function() StealCompleteRemote:FireServer("7799aa8a-03f9-4df1-ab0f-b6df84f6b36c") end)
         end
 
-        task.wait(0.15)
+        task.wait(0.2)
 
-        -- Maintenant, déplacer l'animal vers le PREMIER slot vide
-        local firstEmpty = FindFirstEmptySlot()
-        if firstEmpty then
-            -- Trouver où l'animal vient d'arriver (probablement slot 1 ou 2)
-            for _, possibleSlot in pairs({1, 2, 3, 4, 5}) do
-                local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
-                local ourChannel = Synchronizer:Get(Player)
-                if ourChannel then
-                    local ourPodiums = ourChannel:Get("AnimalPodiums") or {}
-                    if ourPodiums[possibleSlot] and ourPodiums[possibleSlot] ~= "Empty" then
-                        -- Vérifier si c'est l'animal qu'on vient de voler
-                        local animal = ourPodiums[possibleSlot]
-                        if animal.Index == animalName then
-                            -- Le déplacer vers le premier slot vide
-                            if possibleSlot ~= firstEmpty then
-                                MoveAnimal(possibleSlot, firstEmpty)
-                                print("Animal déplacé de", possibleSlot, "à", firstEmpty)
-                            end
-                            break
-                        end
-                    end
-                end
+        -- DÉPLACER l'animal vers le slot réservé
+        if GrabRemote then
+            -- L'animal arrive probablement en slot 1 ou 2
+            for _, sourceSlot in pairs({1, 2, 3}) do
+                pcall(function()
+                    GrabRemote:FireServer("Grab", sourceSlot)
+                    task.wait(0.08)
+                    GrabRemote:FireServer("Place", targetSlot)
+                    print("Déplacé de", sourceSlot, "à", targetSlot)
+                end)
+                task.wait(0.05)
             end
         end
 
@@ -519,7 +488,7 @@ function loadMainGUI()
                 isProcessing = false
                 task.wait(DUP_DELAY)
             else
-                StatusLabel.Text = "Approche-toi d'un animal"
+                StatusLabel.Text = "Approche-toi"
                 TargetLabel.Text = "Cible: Aucune"
                 ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 150, 0)
                 task.wait(0.2)
@@ -529,12 +498,12 @@ function loadMainGUI()
         StatusLabel.Text = "Arrêté"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
         ToggleButton.Text = "DÉMARRER"
-        TargetLabel.Text = "Cible: Aucune"
-        SlotLabel.Text = "Slots: " .. GetFilledSlots() .. "/" .. GetTotalSlots()
+        usedSlots = {}
     end
 
     ToggleButton.MouseButton1Click:Connect(function()
         autoDupEnabled = not autoDupEnabled
+        usedSlots = {}
 
         if autoDupEnabled then
             if IsBaseFull() then
@@ -559,10 +528,11 @@ function loadMainGUI()
         end
     end)
 
-    UserInputService.InputBegan:Connect(function(input, gpe)
+    game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == Enum.KeyCode.V then
             autoDupEnabled = not autoDupEnabled
+            usedSlots = {}
 
             if autoDupEnabled then
                 if IsBaseFull() then
@@ -588,6 +558,5 @@ function loadMainGUI()
         end
     end)
 
-    print("✅ AUTO DUP FIX PRÊT !")
-    print("Les animaux remplissent les slots dans l'ordre 1,2,3...")
+    print("✅ FIX FINAL - Les animaux ne se remplacent plus !")
 end
