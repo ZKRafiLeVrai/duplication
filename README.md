@@ -42,4 +42,4 @@
 ## 📥 Installation
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/ZKRafiLeVrai/dup-trop-bo-sab/refs/heads/main/Main.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ZKRafiLeVrai/duplication/refs/heads/main/Main.lua"))()
