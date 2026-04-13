@@ -5,7 +5,7 @@ local Player = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 
 -- ===== SYSTÈME DE KEY =====
-local VALID_KEY = "5hi_gi737€.)yueu,!'6269"
+local VALID_KEY = "123"
 local keyAccepted = false
 
 -- Fonction pour vérifier la key
