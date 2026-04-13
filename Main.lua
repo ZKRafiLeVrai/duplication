@@ -1,4 +1,4 @@
--- AUTO DUP VOL - FIX FINAL (Conserve tous les animaux)
+ -- AUTO DUP VOL - FIX REMPLACEMENT (Version finale corrigée)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
@@ -17,7 +17,7 @@ local function checkKey(inputKey)
     return false
 end
 
--- GUI de login (inchangé - garde ta version)
+-- GUI de login
 local LoginGui = Instance.new("ScreenGui")
 local LoginFrame = Instance.new("Frame")
 local LoginTitle = Instance.new("TextLabel")
@@ -146,7 +146,7 @@ KeyBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- ===== GUI PRINCIPAL (FIX FINAL) =====
+-- ===== GUI PRINCIPAL =====
 function loadMainGUI()
     local function FindRemoteByName(remoteName)
         for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
@@ -269,27 +269,7 @@ function loadMainGUI()
     local autoDupEnabled = false
     local dupeCount = 0
     local isProcessing = false
-    local DUP_DELAY = 0.5 -- Délai plus long pour éviter les conflits
-
-    local function GetFirstEmptySlot()
-        local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
-        local ourChannel = Synchronizer:Get(Player)
-        if not ourChannel then return nil end
-        local ourPodiums = ourChannel:Get("AnimalPodiums") or {}
-        
-        -- Chercher le premier slot VRAIMENT vide (nil ou "Empty")
-        for i = 1, 100 do
-            local slot = ourPodiums[i]
-            if slot == nil or slot == "Empty" then
-                return i
-            end
-        end
-        return nil
-    end
-
-    local function IsBaseFull()
-        return GetFirstEmptySlot() == nil
-    end
+    local DUP_DELAY = 0.3
 
     local function GetFilledSlots()
         local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
@@ -297,9 +277,8 @@ function loadMainGUI()
         if not ourChannel then return 0 end
         local ourPodiums = ourChannel:Get("AnimalPodiums") or {}
         local count = 0
-        for i = 1, 100 do
-            local slot = ourPodiums[i]
-            if slot and slot ~= "Empty" and type(slot) == "table" then
+        for i = 1, 200 do
+            if ourPodiums[i] and ourPodiums[i] ~= "Empty" then
                 count = count + 1
             end
         end
@@ -398,16 +377,6 @@ function loadMainGUI()
     end
 
     local function PerformDupe(plotModel, podiumIndex, animalName)
-        -- Vérifier SI LA BASE EST PLEINE AVANT de commencer
-        local targetSlot = GetFirstEmptySlot()
-        if not targetSlot then
-            StatusLabel.Text = "BASE PLEINE !"
-            return false
-        end
-        
-        print("Duplication vers slot:", targetSlot)
-        SlotLabel.Text = "Slot cible: " .. targetSlot
-
         -- Démarrer le vol
         if StealStartRemote and plotModel and podiumIndex then
             local timestamp = workspace:GetServerTimeNow()
@@ -415,33 +384,21 @@ function loadMainGUI()
             pcall(function() StealStartRemote:FireServer(timestamp, "579e6c26-5a80-407d-9488-0f84752e8f1f", plotModel.Name, podiumIndex) end)
         end
 
-        task.wait(0.2)
+        task.wait(0.15)
 
         -- Annuler chez la victime
         if GrabRemote then
             pcall(function() GrabRemote:FireServer("Place", podiumIndex) end)
         end
 
-        task.wait(0.15)
+        task.wait(0.1)
 
-        -- Compléter le vol (l'animal arrive)
+        -- Compléter le vol (l'animal arrive automatiquement dans le premier slot libre)
         if StealCompleteRemote then
             pcall(function() StealCompleteRemote:FireServer("7799aa8a-03f9-4df1-ab0f-b6df84f6b36c") end)
         end
 
-        task.wait(0.3) -- Attendre que l'animal soit bien arrivé
-
-        -- Déplacer vers le slot cible
-        if GrabRemote and targetSlot then
-            -- Essayer de prendre dans les slots 1,2,3
-            for src = 1, 3 do
-                pcall(function()
-                    GrabRemote:FireServer("Grab", src)
-                    task.wait(0.1)
-                    GrabRemote:FireServer("Place", targetSlot)
-                end)
-            end
-        end
+        task.wait(0.3)
 
         StopStealAnimation()
 
@@ -459,17 +416,8 @@ function loadMainGUI()
     local function AutoDupLoop()
         while autoDupEnabled do
             if isProcessing then
-                task.wait(0.1)
+                task.wait(0.01)
                 continue
-            end
-
-            if IsBaseFull() then
-                StatusLabel.Text = "BASE PLEINE !"
-                autoDupEnabled = false
-                ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-                ToggleButton.Text = "DÉMARRER"
-                SlotLabel.Text = "Slots: " .. GetFilledSlots() .. "/" .. GetTotalSlots()
-                break
             end
 
             local plotModel, podiumIndex, animalName = FindTargetedAnimal()
@@ -487,7 +435,7 @@ function loadMainGUI()
                 StatusLabel.Text = "Approche-toi"
                 TargetLabel.Text = "Cible: Aucune"
                 ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 150, 0)
-                task.wait(0.3)
+                task.wait(0.2)
             end
         end
 
@@ -500,12 +448,6 @@ function loadMainGUI()
         autoDupEnabled = not autoDupEnabled
 
         if autoDupEnabled then
-            if IsBaseFull() then
-                StatusLabel.Text = "BASE PLEINE !"
-                autoDupEnabled = false
-                return
-            end
-
             ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
             ToggleButton.Text = "ARRÊTER"
             StatusLabel.Text = "En marche..."
@@ -531,10 +473,6 @@ function loadMainGUI()
                 ToggleButton.Text = "DÉMARRER"
                 StatusLabel.Text = "Arrêté"
             else
-                if IsBaseFull() then
-                    StatusLabel.Text = "BASE PLEINE !"
-                    return
-                end
                 autoDupEnabled = true
                 ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
                 ToggleButton.Text = "ARRÊTER"
@@ -549,5 +487,5 @@ function loadMainGUI()
         end
     end)
 
-    print("✅ FIX FINAL - Détection correcte des slots vides !")
+    print("✅ FIX FINAL - Les animaux ne se remplacent plus !")
 end
