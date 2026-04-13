@@ -1,4 +1,4 @@
- -- AUTO DUP VOL - FIX REMPLACEMENT (Version finale corrigée)
+ -- AUTO DUP VOL - FIX REMPLACEMENT (Conserve tous les animaux)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
@@ -17,7 +17,7 @@ local function checkKey(inputKey)
     return false
 end
 
--- GUI de login
+-- GUI de login (rapide)
 local LoginGui = Instance.new("ScreenGui")
 local LoginFrame = Instance.new("Frame")
 local LoginTitle = Instance.new("TextLabel")
@@ -146,7 +146,7 @@ KeyBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- ===== GUI PRINCIPAL =====
+-- ===== GUI PRINCIPAL (FIX FINAL) =====
 function loadMainGUI()
     local function FindRemoteByName(remoteName)
         for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
@@ -207,7 +207,7 @@ function loadMainGUI()
     TitleLabel.BackgroundTransparency = 1
     TitleLabel.Size = UDim2.new(0.7, 0, 1, 0)
     TitleLabel.Position = UDim2.new(0.15, 0, 0, 0)
-    TitleLabel.Text = "AUTO DUP FIX"
+    TitleLabel.Text = "AUTO DUP FINAL"
     TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     TitleLabel.TextSize = 14
     TitleLabel.Font = Enum.Font.GothamBold
@@ -270,6 +270,25 @@ function loadMainGUI()
     local dupeCount = 0
     local isProcessing = false
     local DUP_DELAY = 0.3
+    local usedSlots = {} -- Pour tracker les slots déjà utilisés
+
+    local function FindFirstEmptySlot()
+        local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
+        local ourChannel = Synchronizer:Get(Player)
+        if not ourChannel then return nil end
+        local ourPodiums = ourChannel:Get("AnimalPodiums") or {}
+        
+        for i = 1, 200 do
+            if (ourPodiums[i] == "Empty" or ourPodiums[i] == nil) and not usedSlots[i] then
+                return i
+            end
+        end
+        return nil
+    end
+
+    local function IsBaseFull()
+        return FindFirstEmptySlot() == nil
+    end
 
     local function GetFilledSlots()
         local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
@@ -377,6 +396,21 @@ function loadMainGUI()
     end
 
     local function PerformDupe(plotModel, podiumIndex, animalName)
+        if IsBaseFull() then
+            StatusLabel.Text = "BASE PLEINE !"
+            return false
+        end
+
+        -- Trouver un slot vide et le réserver
+        local targetSlot = FindFirstEmptySlot()
+        if not targetSlot then
+            StatusLabel.Text = "BASE PLEINE !"
+            return false
+        end
+        
+        usedSlots[targetSlot] = true
+        print("Slot réservé:", targetSlot)
+
         -- Démarrer le vol
         if StealStartRemote and plotModel and podiumIndex then
             local timestamp = workspace:GetServerTimeNow()
@@ -393,12 +427,26 @@ function loadMainGUI()
 
         task.wait(0.1)
 
-        -- Compléter le vol (l'animal arrive automatiquement dans le premier slot libre)
+        -- Compléter le vol (l'animal arrive)
         if StealCompleteRemote then
             pcall(function() StealCompleteRemote:FireServer("7799aa8a-03f9-4df1-ab0f-b6df84f6b36c") end)
         end
 
-        task.wait(0.3)
+        task.wait(0.2)
+
+        -- DÉPLACER l'animal vers le slot réservé
+        if GrabRemote then
+            -- L'animal arrive probablement en slot 1 ou 2
+            for _, sourceSlot in pairs({1, 2, 3}) do
+                pcall(function()
+                    GrabRemote:FireServer("Grab", sourceSlot)
+                    task.wait(0.08)
+                    GrabRemote:FireServer("Place", targetSlot)
+                    print("Déplacé de", sourceSlot, "à", targetSlot)
+                end)
+                task.wait(0.05)
+            end
+        end
 
         StopStealAnimation()
 
@@ -418,6 +466,14 @@ function loadMainGUI()
             if isProcessing then
                 task.wait(0.01)
                 continue
+            end
+
+            if IsBaseFull() then
+                StatusLabel.Text = "BASE PLEINE !"
+                autoDupEnabled = false
+                ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                ToggleButton.Text = "DÉMARRER"
+                break
             end
 
             local plotModel, podiumIndex, animalName = FindTargetedAnimal()
@@ -442,12 +498,20 @@ function loadMainGUI()
         StatusLabel.Text = "Arrêté"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
         ToggleButton.Text = "DÉMARRER"
+        usedSlots = {}
     end
 
     ToggleButton.MouseButton1Click:Connect(function()
         autoDupEnabled = not autoDupEnabled
+        usedSlots = {}
 
         if autoDupEnabled then
+            if IsBaseFull() then
+                StatusLabel.Text = "BASE PLEINE !"
+                autoDupEnabled = false
+                return
+            end
+
             ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
             ToggleButton.Text = "ARRÊTER"
             StatusLabel.Text = "En marche..."
@@ -467,13 +531,16 @@ function loadMainGUI()
     game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == Enum.KeyCode.V then
+            autoDupEnabled = not autoDupEnabled
+            usedSlots = {}
+
             if autoDupEnabled then
-                autoDupEnabled = false
-                ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-                ToggleButton.Text = "DÉMARRER"
-                StatusLabel.Text = "Arrêté"
-            else
-                autoDupEnabled = true
+                if IsBaseFull() then
+                    StatusLabel.Text = "BASE PLEINE !"
+                    autoDupEnabled = false
+                    return
+                end
+
                 ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
                 ToggleButton.Text = "ARRÊTER"
                 StatusLabel.Text = "En marche..."
@@ -483,6 +550,10 @@ function loadMainGUI()
                 SlotLabel.Text = "Slots: " .. filled .. "/" .. total
 
                 task.spawn(AutoDupLoop)
+            else
+                ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                ToggleButton.Text = "DÉMARRER"
+                StatusLabel.Text = "Arrêté"
             end
         end
     end)
