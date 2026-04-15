@@ -1,4 +1,4 @@
--- // AUTO DUP VOL - GUI PREMIUM v3.0 (FIX COMPLET) \\
+-- // AUTO DUP VOL - GUI PREMIUM v3.0 (CORRIGÉ COMPLET) \\
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
@@ -48,7 +48,7 @@ function Library:CreateWindow(title, subtitle)
     MainFrame.BackgroundTransparency = 0
     MainFrame.ClipsDescendants = true
     MainFrame.Active = true
-    MainFrame.Draggable = true  -- FIX : GUI déplaçable
+    MainFrame.Draggable = true
     
     local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(0, 10)
@@ -542,39 +542,6 @@ function loadMainGUI()
     local dupeCount = 0
     local isProcessing = false
     local DUP_DELAY = 0.3
-    
-    local Toggle = Window:CreateToggle({
-        Name = "AutoDup",
-        Text = "🤖 Auto Dup Activé",
-        Y = 0.62,
-        Callback = function(state)
-            autoDupEnabled = state
-            if state then
-                StatusLabel:SetText("🟢 Auto Dup en marche...")
-                StatusLabel:SetColor(Library.Theme.Accent)
-                task.spawn(AutoDupLoop)
-            else
-                StatusLabel:SetText("🔴 Auto Dup arrêté")
-                StatusLabel:SetColor(Library.Theme.Primary)
-            end
-        end
-    })
-    
-    Window:CreateLabel({
-        Name = "Hotkey",
-        Text = "⌨️ Raccourci: Touche V",
-        Color = Library.Theme.TextSecondary,
-        Size = 11,
-        Y = 0.8
-    })
-    
-    Window:CreateLabel({
-        Name = "Credit",
-        Text = "⚡ ZKR Scripts - v3.0 Premium",
-        Color = Color3.fromRGB(100, 200, 255),
-        Size = 11,
-        Y = 0.92
-    })
 
     local function GetFilledSlots()
         local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
@@ -594,7 +561,6 @@ function loadMainGUI()
         return filled, total
     end
 
-    -- FIX : Détection corrigée avec GetAttribute("State")
     local function FindTargetedAnimal()
         local char = Player.Character
         if not char then return nil, nil, nil end
@@ -704,6 +670,7 @@ function loadMainGUI()
         return true
     end
 
+    -- DÉFINIR AutoDupLoop AVANT le toggle
     local function AutoDupLoop()
         while autoDupEnabled do
             if isProcessing then
@@ -732,6 +699,40 @@ function loadMainGUI()
             end
         end
     end
+
+    -- Maintenant le toggle peut appeler AutoDupLoop en toute sécurité
+    local Toggle = Window:CreateToggle({
+        Name = "AutoDup",
+        Text = "🤖 Auto Dup Activé",
+        Y = 0.62,
+        Callback = function(state)
+            autoDupEnabled = state
+            if state then
+                StatusLabel:SetText("🟢 Auto Dup en marche...")
+                StatusLabel:SetColor(Library.Theme.Accent)
+                task.spawn(AutoDupLoop)
+            else
+                StatusLabel:SetText("🔴 Auto Dup arrêté")
+                StatusLabel:SetColor(Library.Theme.Primary)
+            end
+        end
+    })
+    
+    Window:CreateLabel({
+        Name = "Hotkey",
+        Text = "⌨️ Raccourci: Touche V",
+        Color = Library.Theme.TextSecondary,
+        Size = 11,
+        Y = 0.8
+    })
+    
+    Window:CreateLabel({
+        Name = "Credit",
+        Text = "⚡ ZKR Scripts - v3.0 Premium",
+        Color = Color3.fromRGB(100, 200, 255),
+        Size = 11,
+        Y = 0.92
+    })
 
     UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
