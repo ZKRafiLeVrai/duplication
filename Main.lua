@@ -1,4 +1,4 @@
--- // AUTO DUP VOL - GUI PREMIUM v3.0 (FIX FINAL) \\
+-- // AUTO DUP VOL - GUI PREMIUM v3.0 (FIX FINAL SIMPLIFIÉ) \\
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
@@ -528,6 +528,8 @@ function loadMainGUI()
     local dupeCount = 0
     local isProcessing = false
     local DUP_DELAY = 0.3
+    local lastDupeTime = 0
+    local lastAnimalName = ""
 
     local function GetFilledSlots()
         local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
@@ -621,6 +623,7 @@ function loadMainGUI()
     end
 
     local function PerformDupe(plot, podium, animalName)
+        -- Démarrer le vol
         if StealStartRemote and plot and podium then
             local ts = workspace:GetServerTimeNow()
             pcall(function() StealStartRemote:FireServer(ts, "c262398d-68e3-4499-8bea-99766bf11686", plot.Name, podium) end)
@@ -629,53 +632,25 @@ function loadMainGUI()
         
         task.wait(0.15)
         
+        -- Compléter le vol (l'animal arrive automatiquement dans ta base)
         if StealCompleteRemote then
             pcall(function() StealCompleteRemote:FireServer("7799aa8a-03f9-4df1-ab0f-b6df84f6b36c") end)
         end
         
         task.wait(0.1)
         
+        -- Annuler chez la victime
         if GrabRemote then
             pcall(function() GrabRemote:FireServer("Place", podium) end)
         end
         
         task.wait(0.3)
         
-        local filledBefore = select(1, GetFilledSlots())
-        
-        local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
-        local ourChannel = Synchronizer:Get(Player)
-        if ourChannel then
-            local ourPodiums = ourChannel:Get("AnimalPodiums") or {}
-            
-            for i = 1, 50 do
-                if ourPodiums[i] and ourPodiums[i] ~= "Empty" and ourPodiums[i].Index == animalName then
-                    if ourPodiums[i].LastCollect and os.time() - ourPodiums[i].LastCollect < 5 then
-                        for j = 1, 200 do
-                            if ourPodiums[j] == "Empty" or ourPodiums[j] == nil then
-                                if i ~= j then
-                                    pcall(function() GrabRemote:FireServer("Grab", i) end)
-                                    task.wait(0.1)
-                                    pcall(function() GrabRemote:FireServer("Place", j) end)
-                                    print("Animal déplacé de", i, "à", j)
-                                    break
-                                end
-                            end
-                        end
-                        break
-                    end
-                end
-            end
-        end
-        
         StopStealAnimation()
         
-        local filledAfter = select(1, GetFilledSlots())
-        if filledAfter > filledBefore then
-            dupeCount = dupeCount + 1
-            CountLabel:SetText("📊 " .. dupeCount .. " duplications")
-        end
-        
+        -- Incrémenter le compteur
+        dupeCount = dupeCount + 1
+        CountLabel:SetText("📊 " .. dupeCount .. " duplications")
         TargetLabel:SetText("🎯 " .. animalName)
         
         local filled, total = GetFilledSlots()
@@ -697,7 +672,17 @@ function loadMainGUI()
             local plot, podium, animalName = FindTargetedAnimal()
             
             if plot and podium then
+                -- Éviter de dupliquer le même animal trop rapidement
+                if animalName == lastAnimalName and tick() - lastDupeTime < 2 then
+                    StatusLabel:SetText("🟡 Attente...")
+                    task.wait(0.5)
+                    continue
+                end
+                
                 isProcessing = true
+                lastAnimalName = animalName
+                lastDupeTime = tick()
+                
                 StatusLabel:SetText("🟡 Duplication en cours...")
                 StatusLabel:SetColor(Color3.fromRGB(255, 255, 100))
                 
@@ -711,6 +696,7 @@ function loadMainGUI()
                 StatusLabel:SetText("🟠 Approche-toi d'un animal...")
                 StatusLabel:SetColor(Color3.fromRGB(255, 180, 100))
                 TargetLabel:SetText("🎯 Aucune cible")
+                lastAnimalName = ""
                 task.wait(0.3)
             end
         end
@@ -743,7 +729,7 @@ function loadMainGUI()
     
     Window:CreateLabel({
         Name = "Credit",
-        Text = "⚡ ZKR Scripts - v3.0 Premium",
+        Text = "⚡ ZXM Scripts by RafiLeVrai,ZXPH,ZM - v3.0 ",
         Color = Color3.fromRGB(100, 200, 255),
         Size = 11,
         Y = 0.92
