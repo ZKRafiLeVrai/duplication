@@ -1,4 +1,4 @@
--- // AUTO DUP VOL - GUI PREMIUM v3.0 \\
+-- // AUTO DUP VOL - GUI PREMIUM v3.0 (CORRIGÉ) \\
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
@@ -17,12 +17,12 @@ end
 -- ===== BIBLIOTHÈQUE UI PREMIUM =====
 local Library = {
     Theme = {
-        Primary = Color3.fromRGB(255, 50, 50),      -- Rouge vif
-        Secondary = Color3.fromRGB(30, 30, 35),     -- Gris foncé
-        Background = Color3.fromRGB(20, 20, 25),    -- Presque noir
-        Accent = Color3.fromRGB(0, 255, 100),       -- Vert néon
-        Text = Color3.fromRGB(255, 255, 255),       -- Blanc
-        TextSecondary = Color3.fromRGB(180, 180, 180) -- Gris clair
+        Primary = Color3.fromRGB(255, 50, 50),
+        Secondary = Color3.fromRGB(30, 30, 35),
+        Background = Color3.fromRGB(20, 20, 25),
+        Accent = Color3.fromRGB(0, 255, 100),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextSecondary = Color3.fromRGB(180, 180, 180)
     }
 }
 
@@ -33,7 +33,6 @@ function Library:CreateWindow(title, subtitle)
     ScreenGui.Parent = CoreGui
     ScreenGui.ResetOnSpawn = false
     
-    -- Effet de fondu à l'ouverture
     ScreenGui.Enabled = false
     task.wait()
     ScreenGui.Enabled = true
@@ -41,7 +40,7 @@ function Library:CreateWindow(title, subtitle)
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
     MainFrame.Parent = ScreenGui
-    MainFrame.BackgroundColor3 = self.Theme.Background
+    MainFrame.BackgroundColor3 = Library.Theme.Background
     MainFrame.BorderSizePixel = 0
     MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     MainFrame.Size = UDim2.new(0, 380, 0, 260)
@@ -68,7 +67,7 @@ function Library:CreateWindow(title, subtitle)
     UICorner.Parent = MainFrame
     
     local UIStroke = Instance.new("UIStroke")
-    UIStroke.Color = self.Theme.Primary
+    UIStroke.Color = Library.Theme.Primary
     UIStroke.Thickness = 1.5
     UIStroke.Transparency = 0.3
     UIStroke.Parent = MainFrame
@@ -77,7 +76,7 @@ function Library:CreateWindow(title, subtitle)
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
     TopBar.Parent = MainFrame
-    TopBar.BackgroundColor3 = self.Theme.Secondary
+    TopBar.BackgroundColor3 = Library.Theme.Secondary
     TopBar.BorderSizePixel = 0
     TopBar.Size = UDim2.new(1, 0, 0, 50)
     TopBar.Position = UDim2.new(0, 0, 0, 0)
@@ -89,9 +88,9 @@ function Library:CreateWindow(title, subtitle)
     -- Gradient animé sur la barre supérieure
     local Gradient = Instance.new("UIGradient")
     Gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, self.Theme.Primary),
+        ColorSequenceKeypoint.new(0, Library.Theme.Primary),
         ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200, 20, 100)),
-        ColorSequenceKeypoint.new(1, self.Theme.Accent)
+        ColorSequenceKeypoint.new(1, Library.Theme.Accent)
     })
     Gradient.Rotation = 90
     Gradient.Parent = TopBar
@@ -104,7 +103,7 @@ function Library:CreateWindow(title, subtitle)
     TitleLabel.Size = UDim2.new(0.7, 0, 1, 0)
     TitleLabel.Position = UDim2.new(0.05, 0, 0, 0)
     TitleLabel.Text = title or "AUTO DUP VOL"
-    TitleLabel.TextColor3 = self.Theme.Text
+    TitleLabel.TextColor3 = Library.Theme.Text
     TitleLabel.TextSize = 18
     TitleLabel.Font = Enum.Font.GothamBold
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -117,7 +116,7 @@ function Library:CreateWindow(title, subtitle)
     SubtitleLabel.Size = UDim2.new(0.4, 0, 0.4, 0)
     SubtitleLabel.Position = UDim2.new(0.05, 0, 0.55, 0)
     SubtitleLabel.Text = subtitle or "by ZKR Scripts"
-    SubtitleLabel.TextColor3 = self.Theme.TextSecondary
+    SubtitleLabel.TextColor3 = Library.Theme.TextSecondary
     SubtitleLabel.TextSize = 10
     SubtitleLabel.Font = Enum.Font.Gotham
     SubtitleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -126,7 +125,7 @@ function Library:CreateWindow(title, subtitle)
     local Logo = Instance.new("Frame")
     Logo.Name = "Logo"
     Logo.Parent = TopBar
-    Logo.BackgroundColor3 = self.Theme.Primary
+    Logo.BackgroundColor3 = Library.Theme.Primary
     Logo.BorderSizePixel = 0
     Logo.Size = UDim2.new(0, 30, 0, 30)
     Logo.Position = UDim2.new(1, -40, 0.5, 0)
@@ -141,7 +140,7 @@ function Library:CreateWindow(title, subtitle)
     LogoText.BackgroundTransparency = 1
     LogoText.Size = UDim2.new(1, 0, 1, 0)
     LogoText.Text = "⚡"
-    LogoText.TextColor3 = self.Theme.Text
+    LogoText.TextColor3 = Library.Theme.Text
     LogoText.TextSize = 18
     LogoText.Font = Enum.Font.GothamBold
     
@@ -188,7 +187,7 @@ function Library:CreateWindow(title, subtitle)
         local ToggleFrame = Instance.new("Frame")
         ToggleFrame.Name = options.Name or "Toggle"
         ToggleFrame.Parent = self.ContentFrame
-        ToggleFrame.BackgroundColor3 = self.Theme.Secondary
+        ToggleFrame.BackgroundColor3 = Library.Theme.Secondary
         ToggleFrame.BorderSizePixel = 0
         ToggleFrame.Size = UDim2.new(0.9, 0, 0, 45)
         ToggleFrame.Position = UDim2.new(0.05, 0, options.Y or 0.1, 0)
@@ -203,7 +202,7 @@ function Library:CreateWindow(title, subtitle)
         ToggleLabel.Size = UDim2.new(0.7, 0, 1, 0)
         ToggleLabel.Position = UDim2.new(0.05, 0, 0, 0)
         ToggleLabel.Text = options.Text or "Toggle"
-        ToggleLabel.TextColor3 = self.Theme.Text
+        ToggleLabel.TextColor3 = Library.Theme.Text
         ToggleLabel.TextSize = 14
         ToggleLabel.Font = Enum.Font.Gotham
         ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -223,7 +222,7 @@ function Library:CreateWindow(title, subtitle)
         
         local ToggleDot = Instance.new("Frame")
         ToggleDot.Parent = ToggleButton
-        ToggleDot.BackgroundColor3 = self.Theme.Text
+        ToggleDot.BackgroundColor3 = Library.Theme.Text
         ToggleDot.BorderSizePixel = 0
         ToggleDot.Size = UDim2.new(0, 18, 0, 18)
         ToggleDot.Position = UDim2.new(0.15, 0, 0.5, 0)
@@ -238,7 +237,7 @@ function Library:CreateWindow(title, subtitle)
         
         local function UpdateToggle(state)
             enabled = state
-            local targetColor = state and self.Theme.Accent or Color3.fromRGB(60, 60, 65)
+            local targetColor = state and Library.Theme.Accent or Color3.fromRGB(60, 60, 65)
             local targetPos = state and UDim2.new(0.85, -18, 0.5, 0) or UDim2.new(0.15, 0, 0.5, 0)
             
             TweenService:Create(ToggleButton, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
@@ -263,7 +262,7 @@ function Library:CreateWindow(title, subtitle)
         Label.Size = UDim2.new(0.9, 0, 0, 25)
         Label.Position = UDim2.new(0.05, 0, options.Y or 0.1, 0)
         Label.Text = options.Text or ""
-        Label.TextColor3 = options.Color or self.Theme.TextSecondary
+        Label.TextColor3 = options.Color or Library.Theme.TextSecondary
         Label.TextSize = options.Size or 13
         Label.Font = options.Font or Enum.Font.Gotham
         Label.TextXAlignment = Enum.TextXAlignment.Left
@@ -286,7 +285,7 @@ function Library:CreateWindow(title, subtitle)
         local ProgressFrame = Instance.new("Frame")
         ProgressFrame.Name = options.Name or "Progress"
         ProgressFrame.Parent = self.ContentFrame
-        ProgressFrame.BackgroundColor3 = self.Theme.Secondary
+        ProgressFrame.BackgroundColor3 = Library.Theme.Secondary
         ProgressFrame.BorderSizePixel = 0
         ProgressFrame.Size = UDim2.new(0.9, 0, 0, 20)
         ProgressFrame.Position = UDim2.new(0.05, 0, options.Y or 0.1, 0)
@@ -298,7 +297,7 @@ function Library:CreateWindow(title, subtitle)
         local ProgressFill = Instance.new("Frame")
         ProgressFill.Name = "Fill"
         ProgressFill.Parent = ProgressFrame
-        ProgressFill.BackgroundColor3 = self.Theme.Accent
+        ProgressFill.BackgroundColor3 = Library.Theme.Accent
         ProgressFill.BorderSizePixel = 0
         ProgressFill.Size = UDim2.new(0, 0, 1, 0)
         
@@ -311,7 +310,7 @@ function Library:CreateWindow(title, subtitle)
         ProgressLabel.BackgroundTransparency = 1
         ProgressLabel.Size = UDim2.new(1, 0, 1, 0)
         ProgressLabel.Text = options.Text or "0%"
-        ProgressLabel.TextColor3 = self.Theme.Text
+        ProgressLabel.TextColor3 = Library.Theme.Text
         ProgressLabel.TextSize = 11
         ProgressLabel.Font = Enum.Font.GothamBold
         ProgressLabel.ZIndex = 2
@@ -477,7 +476,6 @@ DiscordButton.MouseButton1Click:Connect(function()
 end)
 
 PriceButton.MouseButton1Click:Connect(function()
-    -- Affiche les prix
     ErrorLabel.Text = "💰 20€ | 🐉 Dragon +1.5B | 🎮 Garama Boosté"
     ErrorLabel.TextColor3 = Library.Theme.Accent
     task.wait(3)
@@ -499,7 +497,6 @@ local function onSubmit()
         ErrorLabel.Text = "✅ Key valide ! Chargement..."
         ErrorLabel.TextColor3 = Library.Theme.Accent
         
-        -- Animation de fermeture
         local closeTween = TweenService:Create(LoginFrame, TweenInfo.new(0.2), {
             Size = UDim2.new(0, 0, 0, 0),
             Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -513,7 +510,6 @@ local function onSubmit()
         ErrorLabel.Text = "❌ Key invalide !"
         ErrorLabel.TextColor3 = Library.Theme.Primary
         
-        -- Secouer la fenêtre
         local originalPos = LoginFrame.Position
         for i = 1, 4 do
             TweenService:Create(LoginFrame, TweenInfo.new(0.05), {
@@ -543,7 +539,6 @@ function loadMainGUI()
 
     local Window = Library:CreateWindow("AUTO DUP VOL", "by ZKR Scripts")
     
-    -- Status avec icône
     local StatusLabel = Window:CreateLabel({
         Name = "Status",
         Text = "⚫ Prêt",
@@ -552,7 +547,6 @@ function loadMainGUI()
         Y = 0.05
     })
     
-    -- Cible actuelle
     local TargetLabel = Window:CreateLabel({
         Name = "Target",
         Text = "🎯 Aucune cible",
@@ -561,7 +555,6 @@ function loadMainGUI()
         Y = 0.18
     })
     
-    -- Compteur de duplications
     local CountLabel = Window:CreateLabel({
         Name = "Count",
         Text = "📊 0 duplications",
@@ -570,14 +563,12 @@ function loadMainGUI()
         Y = 0.31
     })
     
-    -- Barre de progression
     local ProgressBar = Window:CreateProgressBar({
         Name = "Progress",
         Text = "0%",
         Y = 0.48
     })
     
-    -- Toggle Auto Dup
     local autoDupEnabled = false
     local dupeCount = 0
     local isProcessing = false
@@ -600,7 +591,6 @@ function loadMainGUI()
         end
     })
     
-    -- Raccourci clavier
     Window:CreateLabel({
         Name = "Hotkey",
         Text = "⌨️ Raccourci: Touche V",
@@ -609,7 +599,6 @@ function loadMainGUI()
         Y = 0.8
     })
     
-    -- Crédits
     Window:CreateLabel({
         Name = "Credit",
         Text = "⚡ ZKR Scripts - v3.0 Premium",
@@ -734,8 +723,10 @@ function loadMainGUI()
         TargetLabel:SetText("🎯 " .. animalName)
         
         local filled, total = GetFilledSlots()
-        local percent = math.floor(filled / total * 100)
-        ProgressBar:SetProgress(percent)
+        if total > 0 then
+            local percent = math.floor(filled / total * 100)
+            ProgressBar:SetProgress(percent)
+        end
         
         return true
     end
@@ -776,7 +767,6 @@ function loadMainGUI()
         end
     end)
     
-    -- Initialiser la barre de progression
     local filled, total = GetFilledSlots()
     if total > 0 then
         ProgressBar:SetProgress(math.floor(filled / total * 100))
