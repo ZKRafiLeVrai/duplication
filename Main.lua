@@ -1,4 +1,4 @@
--- // AUTO DUP VOL - GUI PREMIUM v3.0 (CORRIGÉ COMPLET) \\
+-- // AUTO DUP VOL - GUI PREMIUM v3.0 (FIX FINAL) \\
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
@@ -26,7 +26,6 @@ local Library = {
     }
 }
 
--- Fonction pour créer une fenêtre principale
 function Library:CreateWindow(title, subtitle)
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "AutoDupPremium"
@@ -60,7 +59,6 @@ function Library:CreateWindow(title, subtitle)
     UIStroke.Transparency = 0.3
     UIStroke.Parent = MainFrame
     
-    -- Barre supérieure avec gradient
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
     TopBar.Parent = MainFrame
@@ -73,7 +71,6 @@ function Library:CreateWindow(title, subtitle)
     TopCorner.CornerRadius = UDim.new(0, 10)
     TopCorner.Parent = TopBar
     
-    -- Gradient animé sur la barre supérieure
     local Gradient = Instance.new("UIGradient")
     Gradient.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, Library.Theme.Primary),
@@ -83,7 +80,6 @@ function Library:CreateWindow(title, subtitle)
     Gradient.Rotation = 90
     Gradient.Parent = TopBar
     
-    -- Titre principal
     local TitleLabel = Instance.new("TextLabel")
     TitleLabel.Name = "Title"
     TitleLabel.Parent = TopBar
@@ -96,7 +92,6 @@ function Library:CreateWindow(title, subtitle)
     TitleLabel.Font = Enum.Font.GothamBold
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     
-    -- Sous-titre
     local SubtitleLabel = Instance.new("TextLabel")
     SubtitleLabel.Name = "Subtitle"
     SubtitleLabel.Parent = TopBar
@@ -109,7 +104,6 @@ function Library:CreateWindow(title, subtitle)
     SubtitleLabel.Font = Enum.Font.Gotham
     SubtitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     
-    -- Logo (cercle)
     local Logo = Instance.new("Frame")
     Logo.Name = "Logo"
     Logo.Parent = TopBar
@@ -132,7 +126,6 @@ function Library:CreateWindow(title, subtitle)
     LogoText.TextSize = 18
     LogoText.Font = Enum.Font.GothamBold
     
-    -- Contenu principal
     local ContentFrame = Instance.new("Frame")
     ContentFrame.Name = "Content"
     ContentFrame.Parent = MainFrame
@@ -140,7 +133,6 @@ function Library:CreateWindow(title, subtitle)
     ContentFrame.Size = UDim2.new(1, 0, 1, -50)
     ContentFrame.Position = UDim2.new(0, 0, 0, 50)
     
-    -- Animation d'ouverture
     MainFrame.Size = UDim2.new(0, 0, 0, 0)
     local openTween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
         Size = UDim2.new(0, 380, 0, 260)
@@ -149,7 +141,6 @@ function Library:CreateWindow(title, subtitle)
     
     local Window = { ScreenGui = ScreenGui, MainFrame = MainFrame, ContentFrame = ContentFrame }
     
-    -- Méthode pour créer un toggle stylisé
     function Window:CreateToggle(options)
         local ToggleFrame = Instance.new("Frame")
         ToggleFrame.Name = options.Name or "Toggle"
@@ -220,7 +211,6 @@ function Library:CreateWindow(title, subtitle)
         return { SetState = UpdateToggle }
     end
     
-    -- Méthode pour créer un label stylisé
     function Window:CreateLabel(options)
         local Label = Instance.new("TextLabel")
         Label.Name = options.Name or "Label"
@@ -247,7 +237,6 @@ function Library:CreateWindow(title, subtitle)
         return labelObj
     end
     
-    -- Méthode pour créer une barre de progression
     function Window:CreateProgressBar(options)
         local ProgressFrame = Instance.new("Frame")
         ProgressFrame.Name = options.Name or "Progress"
@@ -331,7 +320,6 @@ LoginStroke.Thickness = 2
 LoginStroke.Transparency = 0.5
 LoginStroke.Parent = LoginFrame
 
--- Logo
 local LogoFrame = Instance.new("Frame")
 LogoFrame.Name = "Logo"
 LogoFrame.Parent = LoginFrame
@@ -405,7 +393,6 @@ local SubmitCorner = Instance.new("UICorner")
 SubmitCorner.CornerRadius = UDim.new(0, 8)
 SubmitCorner.Parent = SubmitButton
 
--- Bouton Prix
 PriceButton.Name = "PriceButton"
 PriceButton.Parent = LoginFrame
 PriceButton.BackgroundColor3 = Color3.fromRGB(255, 180, 0)
@@ -420,7 +407,6 @@ local PriceCorner = Instance.new("UICorner")
 PriceCorner.CornerRadius = UDim.new(0, 6)
 PriceCorner.Parent = PriceButton
 
--- Bouton Discord
 DiscordButton.Name = "DiscordButton"
 DiscordButton.Parent = LoginFrame
 DiscordButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
@@ -653,12 +639,43 @@ function loadMainGUI()
             pcall(function() GrabRemote:FireServer("Place", podium) end)
         end
         
-        task.wait(0.15)
+        task.wait(0.3)
+        
+        local filledBefore = select(1, GetFilledSlots())
+        
+        local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
+        local ourChannel = Synchronizer:Get(Player)
+        if ourChannel then
+            local ourPodiums = ourChannel:Get("AnimalPodiums") or {}
+            
+            for i = 1, 50 do
+                if ourPodiums[i] and ourPodiums[i] ~= "Empty" and ourPodiums[i].Index == animalName then
+                    if ourPodiums[i].LastCollect and os.time() - ourPodiums[i].LastCollect < 5 then
+                        for j = 1, 200 do
+                            if ourPodiums[j] == "Empty" or ourPodiums[j] == nil then
+                                if i ~= j then
+                                    pcall(function() GrabRemote:FireServer("Grab", i) end)
+                                    task.wait(0.1)
+                                    pcall(function() GrabRemote:FireServer("Place", j) end)
+                                    print("Animal déplacé de", i, "à", j)
+                                    break
+                                end
+                            end
+                        end
+                        break
+                    end
+                end
+            end
+        end
         
         StopStealAnimation()
         
-        dupeCount = dupeCount + 1
-        CountLabel:SetText("📊 " .. dupeCount .. " duplications")
+        local filledAfter = select(1, GetFilledSlots())
+        if filledAfter > filledBefore then
+            dupeCount = dupeCount + 1
+            CountLabel:SetText("📊 " .. dupeCount .. " duplications")
+        end
+        
         TargetLabel:SetText("🎯 " .. animalName)
         
         local filled, total = GetFilledSlots()
@@ -670,7 +687,6 @@ function loadMainGUI()
         return true
     end
 
-    -- DÉFINIR AutoDupLoop AVANT le toggle
     local function AutoDupLoop()
         while autoDupEnabled do
             if isProcessing then
@@ -700,7 +716,6 @@ function loadMainGUI()
         end
     end
 
-    -- Maintenant le toggle peut appeler AutoDupLoop en toute sécurité
     local Toggle = Window:CreateToggle({
         Name = "AutoDup",
         Text = "🤖 Auto Dup Activé",
