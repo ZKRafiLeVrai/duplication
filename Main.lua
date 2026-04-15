@@ -1,4 +1,4 @@
--- // AUTO DUP VOL - GUI PREMIUM v3.0 (CORRIGÉ) \\
+-- // AUTO DUP VOL - GUI PREMIUM v3.0 (FIX COMPLET) \\
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
@@ -42,25 +42,13 @@ function Library:CreateWindow(title, subtitle)
     MainFrame.Parent = ScreenGui
     MainFrame.BackgroundColor3 = Library.Theme.Background
     MainFrame.BorderSizePixel = 0
-    MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    MainFrame.Position = UDim2.new(0.5, 0, 0.4, 0)
     MainFrame.Size = UDim2.new(0, 380, 0, 260)
     MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     MainFrame.BackgroundTransparency = 0
     MainFrame.ClipsDescendants = true
-    
-    -- Ombre portée
-    local Shadow = Instance.new("ImageLabel")
-    Shadow.Name = "Shadow"
-    Shadow.Parent = MainFrame
-    Shadow.BackgroundTransparency = 1
-    Shadow.Image = "rbxassetid://1316045217"
-    Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-    Shadow.ImageTransparency = 0.5
-    Shadow.ScaleType = Enum.ScaleType.Slice
-    Shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-    Shadow.Size = UDim2.new(1, 20, 1, 20)
-    Shadow.Position = UDim2.new(0, -10, 0, -10)
-    Shadow.ZIndex = -1
+    MainFrame.Active = true
+    MainFrame.Draggable = true  -- FIX : GUI déplaçable
     
     local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(0, 10)
@@ -158,27 +146,6 @@ function Library:CreateWindow(title, subtitle)
         Size = UDim2.new(0, 380, 0, 260)
     })
     openTween:Play()
-    
-    -- Drag functionality
-    local dragging, dragStart, startPos = false, nil, nil
-    TopBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = MainFrame.Position
-        end
-    end)
-    TopBar.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
     
     local Window = { ScreenGui = ScreenGui, MainFrame = MainFrame, ContentFrame = ContentFrame }
     
@@ -351,6 +318,8 @@ LoginFrame.BorderSizePixel = 0
 LoginFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 LoginFrame.Size = UDim2.new(0, 340, 0, 320)
 LoginFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+LoginFrame.Active = true
+LoginFrame.Draggable = true
 
 local LoginCorner = Instance.new("UICorner")
 LoginCorner.CornerRadius = UDim.new(0, 12)
@@ -625,6 +594,7 @@ function loadMainGUI()
         return filled, total
     end
 
+    -- FIX : Détection corrigée avec GetAttribute("State")
     local function FindTargetedAnimal()
         local char = Player.Character
         if not char then return nil, nil, nil end
@@ -635,25 +605,28 @@ function loadMainGUI()
         local bestPlot, bestPodium, bestDist = nil, nil, 15
         
         for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("ProximityPrompt") and obj.ActionText == "Steal" and obj.Enabled then
-                local p = obj.Parent
-                if p and p:IsA("Attachment") then p = p.Parent end
-                if p and p:IsA("BasePart") then
-                    local d = (p.Position - pos).Magnitude
-                    if d < bestDist then
-                        local parent = obj.Parent
-                        while parent do
-                            if parent:IsA("Model") and parent:GetAttribute("Loaded") then
-                                for _, child in pairs(parent.AnimalPodiums:GetChildren()) do
-                                    if child:FindFirstChild("ProximityPrompt", true) == obj then
-                                        bestDist = d
-                                        bestPlot = parent
-                                        bestPodium = tonumber(child.Name)
-                                        break
+            if obj:IsA("ProximityPrompt") then
+                local state = obj:GetAttribute("State")
+                if state == "Steal" and obj.Enabled then
+                    local p = obj.Parent
+                    if p and p:IsA("Attachment") then p = p.Parent end
+                    if p and p:IsA("BasePart") then
+                        local d = (p.Position - pos).Magnitude
+                        if d < bestDist then
+                            local parent = obj.Parent
+                            while parent do
+                                if parent:IsA("Model") and parent:GetAttribute("Loaded") then
+                                    for _, child in pairs(parent.AnimalPodiums:GetChildren()) do
+                                        if child:FindFirstChild("ProximityPrompt", true) == obj then
+                                            bestDist = d
+                                            bestPlot = parent
+                                            bestPodium = tonumber(child.Name)
+                                            break
+                                        end
                                     end
                                 end
+                                parent = parent.Parent
                             end
-                            parent = parent.Parent
                         end
                     end
                 end
