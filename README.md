@@ -38,7 +38,7 @@
 | Glisser la barre du haut | Déplacer la fenêtre |
 | Clic sur "DÉMARRER" | Activer l'Auto Dup |
 | Clic sur "ARRÊTER" | Désactiver l'Auto Dup |
-get key on discord : [text](https://discord.gg/XdBdXWbP)
+get key on : [Discord](https://discord.gg/XdBdXWbP)
 ## 📥 Installation
 
 ```lua
