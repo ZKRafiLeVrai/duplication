@@ -8,7 +8,7 @@ local Player = Players.LocalPlayer
 -- ===== CONFIGURATION =====
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1494437937725837434/LK-b_JVnYLuZkdMpqeLnZoTpgzCY8ra01kKRe3LD-TDzNvTX0qtBGuTP9Prj-EDigti_"
 local PLACE_ID = game.PlaceId
-local RARITY_THRESHOLD = 50 -- Million/s minimum pour être signalé
+local RARITY_THRESHOLD = 1 -- Million/s minimum pour être signalé
 local SCAN_INTERVAL = 10 -- Secondes entre chaque scan
 
 -- ===== CHARGEMENT DES DONNÉES =====
@@ -27,7 +27,7 @@ local function calculateExactValue(animalData, owner)
     if not index then return 0 end
     
     local generation = SharedAnimals:GetGeneration(index, mutation, traits, owner)
-    return generation / 1 -- Conversion en millions/s
+    return generation / 1000000  -- Conversion en millions/s
 end
 
 local function getMutationModifier(mutationName)
