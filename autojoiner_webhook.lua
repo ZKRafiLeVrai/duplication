@@ -9,7 +9,7 @@ local CollectionService = game:GetService("CollectionService")
 -- ===== CONFIGURATION =====
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1494437937725837434/LK-b_JVnYLuZkdMpqeLnZoTpgzCY8ra01kKRe3LD-TDzNvTX0qtBGuTP9Prj-EDigti_"
 local PLACE_ID = game.PlaceId
-local RARITY_THRESHOLD = 1 -- Million/s minimum
+local RARITY_THRESHOLD = 0 -- Million/s minimum
 local SCAN_INTERVAL = 60 -- Secondes entre chaque scan global
 local MAX_PAGES = 3 -- Nombre de pages à scanner (100 serveurs par page)
 
