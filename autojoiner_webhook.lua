@@ -9,7 +9,7 @@ local CollectionService = game:GetService("CollectionService")
 -- ===== CONFIGURATION =====
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1494437937725837434/LK-b_JVnYLuZkdMpqeLnZoTpgzCY8ra01kKRe3LD-TDzNvTX0qtBGuTP9Prj-EDigti_"
 local PLACE_ID = game.PlaceId
-local RARITY_THRESHOLD = 50 -- Million/s minimum
+local RARITY_THRESHOLD = 1 -- Million/s minimum
 local SCAN_INTERVAL = 60 -- Secondes entre chaque scan global
 local MAX_PAGES = 3 -- Nombre de pages à scanner (100 serveurs par page)
 
@@ -69,42 +69,7 @@ local function estimateValueFromServer(server)
 end
 
 -- ===== SCAN GLOBAL =====
-local function performGlobalScan()
-    print("🌐 Début du scan global...")
-    
-    local allServers = {}
-    local cursor = nil
-    local pagesScanned = 0
-    
-    repeat
-        local servers, nextCursor = scanAllServers(cursor)
-        if servers then
-            for _, s in ipairs(servers) do
-                local estimatedValue = estimateValueFromServer(s)
-                if estimatedValue >= RARITY_THRESHOLD then
-                    table.insert(allServers, {
-                        jobId = s.id,
-                        players = s.playing or 0,
-                        maxPlayers = s.maxPlayers or 1,
-                        estimatedValue = estimatedValue,
-                        joinLink = "https://www.roblox.com/games/" .. PLACE_ID .. "?privateServerLinkCode=" .. s.id
-                    })
-                end
-            end
-        end
-        cursor = nextCursor
-        pagesScanned = pagesScanned + 1
-        StatusLabel.Text = string.format("🟡 Scan page %d... (%d serveurs prometteurs)", pagesScanned, #allServers)
-        task.wait(0.5)
-    until not cursor or pagesScanned >= MAX_PAGES
-    
-    -- Trier par valeur estimée
-    table.sort(allServers, function(a, b) return a.estimatedValue > b.estimatedValue end)
-    
-    print("✅ Scan terminé : " .. #allServers .. " serveurs prometteurs trouvés")
-    
-    return allServers
-end
+
 
 -- ===== ENVOI WEBHOOK =====
 local function sendWebhook(server)
@@ -308,6 +273,42 @@ local bestServers = {}
 local lastNotified = {}
 local NOTIFY_COOLDOWN = 300
 
+local function performGlobalScan()
+    print("🌐 Début du scan global...")
+    
+    local allServers = {}
+    local cursor = nil
+    local pagesScanned = 0
+    
+    repeat
+        local servers, nextCursor = scanAllServers(cursor)
+        if servers then
+            for _, s in ipairs(servers) do
+                local estimatedValue = estimateValueFromServer(s)
+                if estimatedValue >= RARITY_THRESHOLD then
+                    table.insert(allServers, {
+                        jobId = s.id,
+                        players = s.playing or 0,
+                        maxPlayers = s.maxPlayers or 1,
+                        estimatedValue = estimatedValue,
+                        joinLink = "https://www.roblox.com/games/" .. PLACE_ID .. "?privateServerLinkCode=" .. s.id
+                    })
+                end
+            end
+        end
+        cursor = nextCursor
+        pagesScanned = pagesScanned + 1
+        StatusLabel.Text = string.format("🟡 Scan page %d... (%d serveurs prometteurs)", pagesScanned, #allServers)
+        task.wait(0.5)
+    until not cursor or pagesScanned >= MAX_PAGES
+    
+    -- Trier par valeur estimée
+    table.sort(allServers, function(a, b) return a.estimatedValue > b.estimatedValue end)
+    
+    print("✅ Scan terminé : " .. #allServers .. " serveurs prometteurs trouvés")
+    
+    return allServers
+end
 -- ===== FONCTIONS =====
 local function updateLocalScan()
     local results = scanCurrentServer()
