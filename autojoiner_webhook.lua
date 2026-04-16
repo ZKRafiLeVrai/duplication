@@ -27,7 +27,7 @@ local function calculateExactValue(animalData, owner)
     if not index then return 0 end
     
     local generation = SharedAnimals:GetGeneration(index, mutation, traits, owner)
-    return generation / 1000000 -- Conversion en millions/s
+    return generation / 1 -- Conversion en millions/s
 end
 
 local function getMutationModifier(mutationName)
