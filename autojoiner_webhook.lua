@@ -4,11 +4,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local Player = Players.LocalPlayer
-
+local CollectionService = game:GetService("CollectionService")
 -- ===== CONFIGURATION =====
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1494437937725837434/LK-b_JVnYLuZkdMpqeLnZoTpgzCY8ra01kKRe3LD-TDzNvTX0qtBGuTP9Prj-EDigti_"
 local PLACE_ID = game.PlaceId
-local RARITY_THRESHOLD = 1 -- Million/s minimum pour être signalé
+local RARITY_THRESHOLD = 0 -- Million/s minimum pour être signalé
 local SCAN_INTERVAL = 10 -- Secondes entre chaque scan
 
 -- ===== CHARGEMENT DES DONNÉES =====
@@ -60,12 +60,13 @@ local function getTraitsModifier(traits)
     return modifier
 end
 
--- ===== SCAN DES PLOTS =====
+-- ===== SCAN DES PLOTS (CORRIGÉ) =====
 local function scanAllPlots()
     local results = {}
     
-    for _, obj in pairs(workspace:GetChildren()) do
-        if obj:IsA("Model") and obj:GetAttribute("Loaded") then
+    -- Méthode 1 : Chercher les plots via le tag "Plot"
+    for _, obj in pairs(CollectionService:GetTagged("Plot")) do
+        if obj:IsA("Model") then
             local plotChannel = Synchronizer:Get(obj.Name)
             if plotChannel then
                 local owner = plotChannel:Get("Owner")
@@ -73,7 +74,7 @@ local function scanAllPlots()
                 local animalList = plotChannel:Get("AnimalList") or {}
                 
                 for slot, animal in pairs(animalList) do
-                    if type(animal) == "table" and animal.Index and animal.Index ~= "Coffin Tung Tung Tung Sahur" then
+                    if type(animal) == "table" and animal.Index and animal.Index ~= "Empty" then
                         local animalData = AnimalsData[animal.Index]
                         if animalData and not animalData.LuckyBlock then
                             local valueMS = calculateExactValue(animal, owner)
@@ -86,7 +87,7 @@ local function scanAllPlots()
                                 owner = ownerName,
                                 slot = slot,
                                 plotName = obj.Name,
-                                rarity = animalData.Rarity,
+                                rarity = animalData.Rarity or "Inconnu",
                                 baseGen = animalData.Generation or 0,
                                 price = animalData.Price or 0
                             })
@@ -97,12 +98,54 @@ local function scanAllPlots()
         end
     end
     
+    -- Si aucun plot trouvé via le tag, on essaie une autre méthode
+    if #results == 0 then
+        print("🔍 Méthode 1 échouée, tentative méthode 2...")
+        
+        -- Méthode 2 : Parcourir tous les modèles dans workspace
+        for _, obj in pairs(workspace:GetChildren()) do
+            if obj:IsA("Model") and obj:FindFirstChild("AnimalPodiums") then
+                local plotChannel = Synchronizer:Get(obj.Name)
+                if plotChannel then
+                    local owner = plotChannel:Get("Owner")
+                    local ownerName = owner and owner.Name or "Inconnu"
+                    local animalList = plotChannel:Get("AnimalList") or {}
+                    
+                    for slot, animal in pairs(animalList) do
+                        if type(animal) == "table" and animal.Index and animal.Index ~= "Empty" then
+                            local animalData = AnimalsData[animal.Index]
+                            if animalData and not animalData.LuckyBlock then
+                                local valueMS = calculateExactValue(animal, owner)
+                                
+                                table.insert(results, {
+                                    name = animal.Index,
+                                    value = valueMS,
+                                    mutation = animal.Mutation or "Aucune",
+                                    traits = animal.Traits or {},
+                                    owner = ownerName,
+                                    slot = slot,
+                                    plotName = obj.Name,
+                                    rarity = animalData.Rarity or "Inconnu"
+                                })
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Debug : afficher ce qu'on a trouvé
+    print("📊 Plots scannés : " .. #results .. " animaux trouvés")
+    if #results > 0 then
+        print("   Premier animal : " .. results[1].name .. " - " .. string.format("%.1fM/s", results[1].value))
+    end
+    
     -- Trier par valeur décroissante
     table.sort(results, function(a, b) return a.value > b.value end)
     
     return results
 end
-
 -- ===== ENVOI WEBHOOK =====
 local function sendWebhook(animal)
     local traitsText = "Aucun"
