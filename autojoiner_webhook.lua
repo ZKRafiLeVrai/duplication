@@ -1,64 +1,74 @@
--- // TEST DE ListItems AVEC DIFFÉRENTS PARAMÈTRES \\
+-- // TEST DE ListItems AVEC LES BONS PARAMÈTRES \\
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 
-local ListItems = ReplicatedStorage.Packages.Net:FindFirstChild("RF/StockEventService/ListItems")
+local function findRemote(name)
+    for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
+        if (obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")) and obj.Name == name then
+            return obj
+        end
+    end
+    return nil
+end
+
+local ListItems = findRemote("RF/StockEventService/ListItems")
 
 if not ListItems then
     print("❌ ListItems introuvable")
     return
 end
 
-print("✅ ListItems trouvé: " .. ListItems:GetFullName())
-print("   Type: " .. ListItems.ClassName)
+print("✅ ListItems trouvé")
 
--- Tester différents paramètres
-local testParams = {
-    nil,
-    {},
-    {type = "animals"},
-    {type = "brainrots"},
-    {type = "all"},
-    {serverJobId = game.JobId},
-    {jobId = game.JobId},
-    game.JobId,
-    "list",
-    {action = "list"}
+-- Les machines disponibles dans le jeu (à deviner ou à trouver)
+local machinesToTest = {
+    "StockEvent",
+    "CraftingMachine",
+    "FuseMachine",
+    "CupidsMachine",
+    "ValentinesMachine",
+    "DivineEvent",
+    "Adminboard"
 }
 
-for i, params in ipairs(testParams) do
-    print("\n🔍 Test " .. i .. ": " .. HttpService:JSONEncode(params))
+local TOKEN = "a694d84f-7b1b-4cec-b21d-c831b291a0c0"
+
+for _, machineName in ipairs(machinesToTest) do
+    print("\n🔍 Test de la machine: " .. machineName)
     
-    local success, result = pcall(function()
-        if params then
-            return ListItems:InvokeServer(params)
-        else
-            return ListItems:InvokeServer()
-        end
+    local success, items = pcall(function()
+        return ListItems:InvokeServer(TOKEN, machineName)
     end)
     
     if success then
         print("   ✅ Succès !")
-        print("   Type de résultat: " .. type(result))
         
-        if type(result) == "table" then
-            local count = 0
-            for _ in pairs(result) do count = count + 1 end
-            print("   📊 " .. count .. " éléments")
+        if items then
+            print("   Type: " .. type(items))
             
-            -- Afficher les premières clés
-            local keys = {}
-            for k, v in pairs(result) do
-                table.insert(keys, tostring(k))
-                if #keys >= 5 then break end
+            if type(items) == "table" then
+                local count = 0
+                for _ in pairs(items) do count = count + 1 end
+                print("   📊 " .. count .. " éléments")
+                
+                -- Afficher les 5 premiers éléments
+                local shown = 0
+                for k, v in pairs(items) do
+                    print("      " .. tostring(k) .. " = " .. tostring(v))
+                    shown = shown + 1
+                    if shown >= 5 then break end
+                end
+            else
+                print("   📝 " .. tostring(items))
             end
-            print("   🔑 Clés: " .. table.concat(keys, ", "))
-        elseif type(result) == "string" then
-            print("   📝 " .. result:sub(1, 100))
+        else
+            print("   ⚠️ Réponse vide (nil)")
         end
     else
-        print("   ❌ Échec: " .. tostring(result))
+        print("   ❌ Erreur: " .. tostring(items))
     end
     
     task.wait(0.5)
 end
+
+print("\n✅ Tests terminés")
