@@ -1,4 +1,4 @@
--- // AUTOJOINER GLOBAL - SCAN DE TOUS LES SERVEURS \\
+-- // AUTOJOINER GLOBAL - SCAN DE TOUS LES SERVEURS (AMÉLIORÉ) \\
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
@@ -9,7 +9,7 @@ local CollectionService = game:GetService("CollectionService")
 -- ===== CONFIGURATION =====
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1494437937725837434/LK-b_JVnYLuZkdMpqeLnZoTpgzCY8ra01kKRe3LD-TDzNvTX0qtBGuTP9Prj-EDigti_"
 local PLACE_ID = game.PlaceId
-local RARITY_THRESHOLD = 0 -- Million/s minimum
+local RARITY_THRESHOLD = 10 -- Million/s minimum (baissé pour tester)
 local SCAN_INTERVAL = 60 -- Secondes entre chaque scan global
 local MAX_PAGES = 3 -- Nombre de pages à scanner (100 serveurs par page)
 
@@ -32,8 +32,8 @@ local function calculateExactValue(animalData, owner)
 end
 
 -- ===== SCAN DES SERVEURS VIA API ROBLOX =====
-local function scanAllServers(cursor)
-    local url = "https://games.roblox.com/v1/games/" .. PLACE_ID .. "/servers/Public?limit=100"
+local function scanAllServers(cursor, apiType)
+    local url = "https://games.roblox.com/v1/games/" .. PLACE_ID .. "/servers/" .. apiType .. "?limit=100"
     if cursor then
         url = url .. "&cursor=" .. cursor
     end
@@ -68,10 +68,7 @@ local function estimateValueFromServer(server)
     end
 end
 
--- ===== SCAN GLOBAL =====
-
-
--- ===== ENVOI WEBHOOK =====
+-- ===== ENVOI WEBHOOK SERVEUR =====
 local function sendWebhook(server)
     local embed = {
         ["title"] = "🌐 SERVEUR PROMETTEUR DÉTECTÉ !",
@@ -114,6 +111,37 @@ local function scanCurrentServer()
                                 traits = animal.Traits or {},
                                 owner = ownerName
                             })
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Méthode alternative si aucun plot trouvé
+    if #results == 0 then
+        for _, obj in pairs(workspace:GetChildren()) do
+            if obj:IsA("Model") and obj:FindFirstChild("AnimalPodiums") then
+                local plotChannel = Synchronizer:Get(obj.Name)
+                if plotChannel then
+                    local owner = plotChannel:Get("Owner")
+                    local ownerName = owner and owner.Name or "Inconnu"
+                    local animalList = plotChannel:Get("AnimalList") or {}
+                    
+                    for slot, animal in pairs(animalList) do
+                        if type(animal) == "table" and animal.Index and animal.Index ~= "Empty" then
+                            local animalData = AnimalsData[animal.Index]
+                            if animalData and not animalData.LuckyBlock then
+                                local valueMS = calculateExactValue(animal, owner)
+                                
+                                table.insert(results, {
+                                    name = animal.Index,
+                                    value = valueMS,
+                                    mutation = animal.Mutation or "Aucune",
+                                    traits = animal.Traits or {},
+                                    owner = ownerName
+                                })
+                            end
                         end
                     end
                 end
@@ -273,43 +301,55 @@ local bestServers = {}
 local lastNotified = {}
 local NOTIFY_COOLDOWN = 300
 
+-- ===== SCAN GLOBAL AMÉLIORÉ =====
 local function performGlobalScan()
     print("🌐 Début du scan global...")
     
     local allServers = {}
-    local cursor = nil
-    local pagesScanned = 0
+    local totalScanned = 0
     
-    repeat
-        local servers, nextCursor = scanAllServers(cursor)
-        if servers then
-            for _, s in ipairs(servers) do
-                local estimatedValue = estimateValueFromServer(s)
-                if estimatedValue >= RARITY_THRESHOLD then
-                    table.insert(allServers, {
-                        jobId = s.id,
-                        players = s.playing or 0,
-                        maxPlayers = s.maxPlayers or 1,
-                        estimatedValue = estimatedValue,
-                        joinLink = "https://www.roblox.com/games/" .. PLACE_ID .. "?privateServerLinkCode=" .. s.id
-                    })
+    -- Essayer les deux types d'API
+    local apiTypes = {"Public", "Friends"}
+    
+    for _, apiType in ipairs(apiTypes) do
+        local cursor = nil
+        local pagesScanned = 0
+        
+        repeat
+            local servers, nextCursor = scanAllServers(cursor, apiType)
+            if servers then
+                totalScanned = totalScanned + #servers
+                print("📡 " .. apiType .. ": " .. #servers .. " serveurs")
+                
+                for _, s in ipairs(servers) do
+                    local estimatedValue = estimateValueFromServer(s)
+                    if estimatedValue >= RARITY_THRESHOLD then
+                        table.insert(allServers, {
+                            jobId = s.id,
+                            players = s.playing or 0,
+                            maxPlayers = s.maxPlayers or 1,
+                            estimatedValue = estimatedValue,
+                            joinLink = "https://www.roblox.com/games/" .. PLACE_ID .. "?privateServerLinkCode=" .. s.id
+                        })
+                    end
                 end
             end
-        end
-        cursor = nextCursor
-        pagesScanned = pagesScanned + 1
-        StatusLabel.Text = string.format("🟡 Scan page %d... (%d serveurs prometteurs)", pagesScanned, #allServers)
-        task.wait(0.5)
-    until not cursor or pagesScanned >= MAX_PAGES
+            cursor = nextCursor
+            pagesScanned = pagesScanned + 1
+            StatusLabel.Text = string.format("🟡 Scan %s page %d... (%d prometteurs)", apiType, pagesScanned, #allServers)
+            task.wait(1)
+        until not cursor or pagesScanned >= MAX_PAGES
+    end
     
     -- Trier par valeur estimée
     table.sort(allServers, function(a, b) return a.estimatedValue > b.estimatedValue end)
     
-    print("✅ Scan terminé : " .. #allServers .. " serveurs prometteurs trouvés")
+    print("✅ Scan terminé : " .. totalScanned .. " serveurs scannés, " .. #allServers .. " prometteurs")
     
     return allServers
 end
--- ===== FONCTIONS =====
+
+-- ===== FONCTIONS UI =====
 local function updateLocalScan()
     local results = scanCurrentServer()
     
@@ -318,14 +358,16 @@ local function updateLocalScan()
         LocalInfoLabel.Text = string.format("Serveur actuel:\n%d animaux - Meilleur: %s", #results, best.name)
         BestLabel.Text = string.format("Meilleur: %s - $%.1fM/s - %s", best.name, best.value, best.mutation)
         
+        -- TEST WEBHOOK (envoie le meilleur animal pour tester)
+        sendAnimalWebhook(best)
+        print("📢 TEST: Webhook envoyé pour " .. best.name)
+        
         for _, animal in ipairs(results) do
             if animal.value >= RARITY_THRESHOLD then
                 local key = animal.owner .. "_" .. animal.name
                 local now = os.time()
                 if not lastNotified[key] or (now - lastNotified[key]) > NOTIFY_COOLDOWN then
-                    sendAnimalWebhook(animal)
                     lastNotified[key] = now
-                    print("📢 Webhook envoyé pour: " .. animal.name)
                 end
             end
         end
@@ -397,3 +439,4 @@ updateLocalScan()
 print("✅ Autojoiner Global chargé !")
 print("🌐 Scan global pour trouver les serveurs prometteurs")
 print("📊 Scan local pour confirmation avec valeur exacte")
+print("📢 TEST: Le webhook enverra le meilleur animal du serveur actuel")
