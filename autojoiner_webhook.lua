@@ -1,6 +1,5 @@
--- // TEST DE ListItems AVEC LES BONS PARAMÈTRES \\
+-- // SCANNER DE MACHINE STOCK EVENT \\
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local HttpService = game:GetService("HttpService")
 
 local function findRemote(name)
     for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
@@ -12,63 +11,41 @@ local function findRemote(name)
 end
 
 local ListItems = findRemote("RF/StockEventService/ListItems")
-
 if not ListItems then
     print("❌ ListItems introuvable")
     return
 end
 
-print("✅ ListItems trouvé")
-
--- Les machines disponibles dans le jeu (à deviner ou à trouver)
-local machinesToTest = {
-    "StockEvent",
-    "CraftingMachine",
-    "FuseMachine",
-    "CupidsMachine",
-    "ValentinesMachine",
-    "DivineEvent",
-    "Adminboard"
-}
-
 local TOKEN = "a694d84f-7b1b-4cec-b21d-c831b291a0c0"
+local machines = {"Taco4", "WorL", "WinterHour", "Taco5", "MainStock", "Taco6"}
 
-for _, machineName in ipairs(machinesToTest) do
-    print("\n🔍 Test de la machine: " .. machineName)
+print("🔍 SCAN DES MACHINES STOCK EVENT")
+print("═══════════════════════════════")
+
+for _, machineName in ipairs(machines) do
+    print("\n📦 Machine: " .. machineName)
     
-    local success, items = pcall(function()
+    local success, data = pcall(function()
         return ListItems:InvokeServer(TOKEN, machineName)
     end)
     
-    if success then
-        print("   ✅ Succès !")
+    if success and data then
+        print("   ✅ Données reçues !")
         
-        if items then
-            print("   Type: " .. type(items))
-            
-            if type(items) == "table" then
-                local count = 0
-                for _ in pairs(items) do count = count + 1 end
-                print("   📊 " .. count .. " éléments")
-                
-                -- Afficher les 5 premiers éléments
-                local shown = 0
-                for k, v in pairs(items) do
-                    print("      " .. tostring(k) .. " = " .. tostring(v))
-                    shown = shown + 1
-                    if shown >= 5 then break end
-                end
-            else
-                print("   📝 " .. tostring(items))
+        for itemName, itemData in pairs(data) do
+            print("   🎁 " .. itemName)
+            if itemData.Inputs then
+                print("      Requiert: " .. table.concat(itemData.Inputs, ", "))
             end
-        else
-            print("   ⚠️ Réponse vide (nil)")
+            if itemData.Output then
+                print("      Output: " .. itemData.Output)
+            end
         end
     else
-        print("   ❌ Erreur: " .. tostring(items))
+        print("   ❌ Échec ou pas de données")
     end
     
-    task.wait(0.5)
+    task.wait(0.3)
 end
 
-print("\n✅ Tests terminés")
+print("\n✅ Scan terminé !")
