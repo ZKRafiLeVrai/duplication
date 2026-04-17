@@ -1,84 +1,95 @@
--- // SCAN EXACT CORRIGÉ \\
+-- // SCAN EXACT AVEC RECHERCHE RÉCURSIVE \\
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local Player = Players.LocalPlayer
 
 local SERVER_URL = "http://127.0.0.1:5000/scan"
-local RARITY_THRESHOLD = 1 -- Baissé à 1M/s pour tout voir
+local RARITY_THRESHOLD = 1
 
--- Chargement des données
 local SharedAnimals = require(ReplicatedStorage.Shared.Animals)
 local AnimalsData = require(ReplicatedStorage.Datas.Animals)
 local TraitsData = require(ReplicatedStorage.Datas.Traits)
 local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
 
--- Calcul exact
 local function calculateExactValue(animalData, owner)
     local index = animalData.Index
     local mutation = animalData.Mutation
     local traits = animalData.Traits
-    
     if not index then return 0 end
-    
     local generation = SharedAnimals:GetGeneration(index, mutation, traits, owner)
     return generation / 1000000
 end
 
--- Scan des plots CORRIGÉ
-local function scanCurrentServer()
-    local results = {}
+-- Recherche récursive de TOUS les modèles avec AnimalPodiums
+local function findAllPlots(parent, depth)
+    depth = depth or 0
+    local plots = {}
     
-    print("🔍 Scan des plots...")
-    
-    -- Parcourir TOUS les modèles dans workspace
-    for _, obj in pairs(workspace:GetChildren()) do
-        -- Un plot est un modèle qui contient "AnimalPodiums"
-        if obj:IsA("Model") and obj:FindFirstChild("AnimalPodiums") then
-            print("   Plot trouvé: " .. obj.Name)
-            
-            -- Essayer d'obtenir le canal Synchronizer
-            local plotChannel = Synchronizer:Get(obj.Name)
-            if plotChannel then
-                local owner = plotChannel:Get("Owner")
-                local ownerName = owner and owner.Name or "Inconnu"
-                local animalList = plotChannel:Get("AnimalList") or {}
-                
-                print("      Propriétaire: " .. ownerName)
-                print("      Animaux dans la liste: " .. #animalList)
-                
-                -- Parcourir les animaux dans AnimalList
-                for slot, animal in pairs(animalList) do
-                    if type(animal) == "table" and animal.Index and animal.Index ~= "Empty" then
-                        local animalData = AnimalsData[animal.Index]
-                        if animalData and not animalData.LuckyBlock then
-                            local valueMS = calculateExactValue(animal, owner)
-                            
-                            print("         Slot " .. slot .. ": " .. animal.Index .. " - " .. string.format("%.1fM/s", valueMS))
-                            
-                            table.insert(results, {
-                                name = animal.Index,
-                                value = valueMS,
-                                mutation = animal.Mutation or "Aucune",
-                                traits = animal.Traits or {},
-                                owner = ownerName
-                            })
-                        end
-                    end
-                end
-            else
-                print("      ❌ Pas de plotChannel pour " .. obj.Name)
+    for _, child in pairs(parent:GetChildren()) do
+        if child:IsA("Model") and child:FindFirstChild("AnimalPodiums") then
+            table.insert(plots, child)
+        end
+        
+        -- Chercher aussi dans les dossiers (Folder, Model, etc.)
+        if child:IsA("Folder") or child:IsA("Model") then
+            local subPlots = findAllPlots(child, depth + 1)
+            for _, plot in ipairs(subPlots) do
+                table.insert(plots, plot)
             end
         end
     end
     
-    print("✅ Total animaux trouvés: " .. #results)
+    return plots
+end
+
+local function scanCurrentServer()
+    local results = {}
     
+    print("🔍 Recherche des plots...")
+    
+    -- Chercher dans workspace ET dans ses dossiers
+    local plots = findAllPlots(workspace)
+    print("📊 Plots trouvés: " .. #plots)
+    
+    for _, plot in ipairs(plots) do
+        print("   Plot: " .. plot:GetFullName())
+        
+        local plotChannel = Synchronizer:Get(plot.Name)
+        if plotChannel then
+            local owner = plotChannel:Get("Owner")
+            local ownerName = owner and owner.Name or "Inconnu"
+            local animalList = plotChannel:Get("AnimalList") or {}
+            
+            print("      Propriétaire: " .. ownerName)
+            
+            for slot, animal in pairs(animalList) do
+                if type(animal) == "table" and animal.Index and animal.Index ~= "Empty" then
+                    local animalData = AnimalsData[animal.Index]
+                    if animalData and not animalData.LuckyBlock then
+                        local valueMS = calculateExactValue(animal, owner)
+                        print("         " .. animal.Index .. " - " .. string.format("%.1fM/s", valueMS))
+                        
+                        table.insert(results, {
+                            name = animal.Index,
+                            value = valueMS,
+                            mutation = animal.Mutation or "Aucune",
+                            traits = animal.Traits or {},
+                            owner = ownerName
+                        })
+                    end
+                end
+            end
+        else
+            print("      ❌ Pas de Synchronizer pour: " .. plot.Name)
+        end
+    end
+    
+    print("✅ Total animaux: " .. #results)
     table.sort(results, function(a, b) return a.value > b.value end)
     return results
 end
 
--- Envoi au serveur local
 local function sendToServer(animal)
     local traitsText = "Aucun"
     if animal.traits and #animal.traits > 0 then
@@ -100,43 +111,28 @@ local function sendToServer(animal)
         join_link = "https://www.roblox.com/games/" .. game.PlaceId
     }
     
-    print("📡 Envoi de " .. animal.name .. " vers le serveur...")
-    
     local success, err = pcall(function()
         HttpService:PostAsync(SERVER_URL, HttpService:JSONEncode(data))
     end)
     
     if success then
-        print("   ✅ Envoyé avec succès !")
+        print("   ✅ Envoyé: " .. animal.name)
     else
         print("   ❌ Erreur: " .. tostring(err))
     end
 end
 
--- Scan et envoi
 local function scanAndSend()
-    print(" ")
     print("═══════════════════════════════")
-    print("🔍 SCAN DÉMARRÉ")
-    print("═══════════════════════════════")
-    
     local results = scanCurrentServer()
     
     if #results > 0 then
-        print(" ")
-        print("📢 ENVOI DE " .. #results .. " ANIMAUX")
-        
-        -- Envoyer les 5 meilleurs
         for i = 1, math.min(5, #results) do
             sendToServer(results[i])
             task.wait(0.5)
         end
-    else
-        print("📭 Aucun animal trouvé")
     end
-    
     print("═══════════════════════════════")
-    print("✅ TERMINÉ")
 end
 
 -- GUI
@@ -156,8 +152,7 @@ Button.Parent = ScreenGui
 
 Button.MouseButton1Click:Connect(scanAndSend)
 
--- Test immédiat
 task.wait(1)
 scanAndSend()
 
-print("✅ Scanner corrigé prêt !")
+print("✅ Scanner récursif prêt !")
