@@ -1,86 +1,64 @@
--- // EXPORT DES REMOTES EN JSON \\
+-- // TEST DE ListItems AVEC DIFFÉRENTS PARAMÈTRES \\
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 
-print("═══════════════════════════════")
-print("🔍 SCAN DE TOUS LES REMOTES")
-print("═══════════════════════════════")
+local ListItems = ReplicatedStorage.Packages.Net:FindFirstChild("RF/StockEventService/ListItems")
 
-local remotes = {
-    RemoteEvents = {},
-    RemoteFunctions = {}
+if not ListItems then
+    print("❌ ListItems introuvable")
+    return
+end
+
+print("✅ ListItems trouvé: " .. ListItems:GetFullName())
+print("   Type: " .. ListItems.ClassName)
+
+-- Tester différents paramètres
+local testParams = {
+    nil,
+    {},
+    {type = "animals"},
+    {type = "brainrots"},
+    {type = "all"},
+    {serverJobId = game.JobId},
+    {jobId = game.JobId},
+    game.JobId,
+    "list",
+    {action = "list"}
 }
 
--- Parcourir tout ReplicatedStorage
-for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
-    if obj:IsA("RemoteEvent") then
-        table.insert(remotes.RemoteEvents, {
-            Name = obj.Name,
-            Path = obj:GetFullName(),
-            Parent = obj.Parent and obj.Parent.Name or "nil"
-        })
-    elseif obj:IsA("RemoteFunction") then
-        table.insert(remotes.RemoteFunctions, {
-            Name = obj.Name,
-            Path = obj:GetFullName(),
-            Parent = obj.Parent and obj.Parent.Name or "nil"
-        })
+for i, params in ipairs(testParams) do
+    print("\n🔍 Test " .. i .. ": " .. HttpService:JSONEncode(params))
+    
+    local success, result = pcall(function()
+        if params then
+            return ListItems:InvokeServer(params)
+        else
+            return ListItems:InvokeServer()
+        end
+    end)
+    
+    if success then
+        print("   ✅ Succès !")
+        print("   Type de résultat: " .. type(result))
+        
+        if type(result) == "table" then
+            local count = 0
+            for _ in pairs(result) do count = count + 1 end
+            print("   📊 " .. count .. " éléments")
+            
+            -- Afficher les premières clés
+            local keys = {}
+            for k, v in pairs(result) do
+                table.insert(keys, tostring(k))
+                if #keys >= 5 then break end
+            end
+            print("   🔑 Clés: " .. table.concat(keys, ", "))
+        elseif type(result) == "string" then
+            print("   📝 " .. result:sub(1, 100))
+        end
+    else
+        print("   ❌ Échec: " .. tostring(result))
     end
-end
-
--- Trier par nom
-table.sort(remotes.RemoteEvents, function(a, b) return a.Name < b.Name end)
-table.sort(remotes.RemoteFunctions, function(a, b) return a.Name < b.Name end)
-
--- Afficher le résumé
-print("\n📡 REMOTE EVENTS: " .. #remotes.RemoteEvents)
-for i, remote in ipairs(remotes.RemoteEvents) do
-    print("   " .. remote.Name)
-    if i >= 10 then
-        print("   ... et " .. (#remotes.RemoteEvents - 10) .. " autres")
-        break
-    end
-end
-
-print("\n📡 REMOTE FUNCTIONS: " .. #remotes.RemoteFunctions)
-for i, remote in ipairs(remotes.RemoteFunctions) do
-    print("   " .. remote.Name)
-    if i >= 10 then
-        print("   ... et " .. (#remotes.RemoteFunctions - 10) .. " autres")
-        break
-    end
-end
-
--- Ajouter des infos utiles
-local exportData = {
-    PlaceId = game.PlaceId,
-    PlaceName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
-    TotalRemoteEvents = #remotes.RemoteEvents,
-    TotalRemoteFunctions = #remotes.RemoteFunctions,
-    Remotes = remotes,
-    ExportedAt = os.date("%Y-%m-%d %H:%M:%S")
-}
-
--- Convertir en JSON
-local jsonString = HttpService:JSONEncode(exportData)
-
--- Sauvegarder dans un fichier
-local fileName = "remotes_export_" .. os.date("%Y%m%d_%H%M%S") .. ".json"
-writefile(fileName, jsonString)
-
-print("\n✅ Export terminé !")
-print("📁 Fichier sauvegardé: " .. fileName)
-print("📍 Emplacement: Dossier 'workspace' de Delta")
-
--- Afficher les 20 premiers RemoteEvents (pour debug)
-print("\n📋 APERÇU DES 20 PREMIERS REMOTE EVENTS:")
-for i = 1, math.min(20, #remotes.RemoteEvents) do
-    local r = remotes.RemoteEvents[i]
-    print("   " .. i .. ". " .. r.Name .. " -> " .. r.Path)
-end
-
-print("\n📋 APERÇU DES REMOTE FUNCTIONS:")
-for i = 1, math.min(20, #remotes.RemoteFunctions) do
-    local r = remotes.RemoteFunctions[i]
-    print("   " .. i .. ". " .. r.Name .. " -> " .. r.Path)
+    
+    task.wait(0.5)
 end
