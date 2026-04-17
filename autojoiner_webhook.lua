@@ -1,158 +1,138 @@
--- // SCAN EXACT AVEC RECHERCHE RÉCURSIVE \\
+-- // GLOBAL SCANNER SANS TELEPORTATION \\
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local Player = Players.LocalPlayer
 
-local SERVER_URL = "http://127.0.0.1:5000/scan"
-local RARITY_THRESHOLD = 1
+-- ===== CONFIGURATION =====
+local PLACE_ID = game.PlaceId
+local SCAN_INTERVAL = 60
+local MAX_SERVERS = 50
 
-local SharedAnimals = require(ReplicatedStorage.Shared.Animals)
-local AnimalsData = require(ReplicatedStorage.Datas.Animals)
-local TraitsData = require(ReplicatedStorage.Datas.Traits)
-local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
-
-local function calculateExactValue(animalData, owner)
-    local index = animalData.Index
-    local mutation = animalData.Mutation
-    local traits = animalData.Traits
-    if not index then return 0 end
-    local generation = SharedAnimals:GetGeneration(index, mutation, traits, owner)
-    return generation / 1000000
-end
-
--- Recherche récursive de TOUS les modèles avec AnimalPodiums
-local function findAllPlots(parent, depth)
-    depth = depth or 0
-    local plots = {}
-    
-    for _, child in pairs(parent:GetChildren()) do
-        if child:IsA("Model") and child:FindFirstChild("AnimalPodiums") then
-            table.insert(plots, child)
-        end
-        
-        -- Chercher aussi dans les dossiers (Folder, Model, etc.)
-        if child:IsA("Folder") or child:IsA("Model") then
-            local subPlots = findAllPlots(child, depth + 1)
-            for _, plot in ipairs(subPlots) do
-                table.insert(plots, plot)
+-- ===== REMOTES =====
+-- Essaie de trouver un RemoteEvent qui peut donner des infos sur d'autres serveurs
+local function findInfoRemote()
+    for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            local name = obj.Name:lower()
+            if name:find("server") or name:find("info") or name:find("list") then
+                print("🔍 Remote trouvé: " .. obj:GetFullName())
+                return obj
             end
         end
     end
-    
-    return plots
+    return nil
 end
 
-local function scanCurrentServer()
-    local results = {}
+local InfoRemote = findInfoRemote()
+
+-- ===== SCAN VIA API =====
+local function getServerList()
+    local servers = {}
+    local cursor = nil
     
-    print("🔍 Recherche des plots...")
-    
-    -- Chercher dans workspace ET dans ses dossiers
-    local plots = findAllPlots(workspace)
-    print("📊 Plots trouvés: " .. #plots)
-    
-    for _, plot in ipairs(plots) do
-        print("   Plot: " .. plot:GetFullName())
+    for page = 1, 3 do
+        local url = "https://games.roblox.com/v1/games/" .. PLACE_ID .. "/servers/Public?limit=100"
+        if cursor then url = url .. "&cursor=" .. cursor end
         
-        local plotChannel = Synchronizer:Get(plot.Name)
-        if plotChannel then
-            local owner = plotChannel:Get("Owner")
-            local ownerName = owner and owner.Name or "Inconnu"
-            local animalList = plotChannel:Get("AnimalList") or {}
-            
-            print("      Propriétaire: " .. ownerName)
-            
-            for slot, animal in pairs(animalList) do
-                if type(animal) == "table" and animal.Index and animal.Index ~= "Empty" then
-                    local animalData = AnimalsData[animal.Index]
-                    if animalData and not animalData.LuckyBlock then
-                        local valueMS = calculateExactValue(animal, owner)
-                        print("         " .. animal.Index .. " - " .. string.format("%.1fM/s", valueMS))
-                        
-                        table.insert(results, {
-                            name = animal.Index,
-                            value = valueMS,
-                            mutation = animal.Mutation or "Aucune",
-                            traits = animal.Traits or {},
-                            owner = ownerName
-                        })
-                    end
-                end
+        local success, result = pcall(function()
+            return HttpService:GetAsync(url)
+        end)
+        
+        if success then
+            local data = HttpService:JSONDecode(result)
+            for _, s in ipairs(data.data or {}) do
+                table.insert(servers, s.id)
             end
-        else
-            print("      ❌ Pas de Synchronizer pour: " .. plot.Name)
+            cursor = data.nextPageCursor
+        end
+        
+        if not cursor then break end
+        task.wait(0.5)
+    end
+    
+    return servers
+end
+
+-- ===== TENTATIVE D'ENVOI DE REQUÊTE À UN AUTRE SERVEUR =====
+local function probeServer(jobId)
+    print("🔍 Test du serveur: " .. jobId:sub(1, 8) .. "...")
+    
+    -- Méthode 1: Via TeleportService (sans se téléporter)
+    -- Certains jeux ont un système de "preview" de serveur
+    
+    -- Méthode 2: Via un RemoteEvent qui accepte un JobId
+    if InfoRemote then
+        -- Essaie d'appeler le remote avec le JobId
+        local success, result = pcall(function()
+            if InfoRemote:IsA("RemoteFunction") then
+                return InfoRemote:InvokeServer(jobId)
+            else
+                InfoRemote:FireServer(jobId)
+                return nil
+            end
+        end)
+        
+        if success and result then
+            print("   ✅ Réponse reçue: " .. tostring(result))
+            return result
         end
     end
     
-    print("✅ Total animaux: " .. #results)
-    table.sort(results, function(a, b) return a.value > b.value end)
-    return results
+    print("   ❌ Aucune réponse")
+    return nil
 end
 
-local function sendToServer(animal)
-    local traitsText = "Aucun"
-    if animal.traits and #animal.traits > 0 then
-        local traitNames = {}
-        for _, t in ipairs(animal.traits) do
-            local traitData = TraitsData[t]
-            table.insert(traitNames, traitData and traitData.Display or t)
+-- ===== SCAN GLOBAL =====
+local function globalScan()
+    print("🌐 Récupération de la liste des serveurs...")
+    local servers = getServerList()
+    print("📊 " .. #servers .. " serveurs trouvés")
+    
+    local scanned = 0
+    for _, jobId in ipairs(servers) do
+        if scanned >= MAX_SERVERS then break end
+        
+        local info = probeServer(jobId)
+        if info then
+            print("   📡 Infos: " .. HttpService:JSONEncode(info))
         end
-        traitsText = table.concat(traitNames, ", ")
+        
+        scanned = scanned + 1
+        task.wait(0.2)  -- Petit délai pour éviter de spammer
     end
     
-    local data = {
-        animal = animal.name,
-        value = animal.value,
-        mutation = animal.mutation,
-        traits = traitsText,
-        rarity = AnimalsData[animal.name] and AnimalsData[animal.name].Rarity or "Inconnu",
-        owner = animal.owner,
-        join_link = "https://www.roblox.com/games/" .. game.PlaceId
-    }
-    
-    local success, err = pcall(function()
-        HttpService:PostAsync(SERVER_URL, HttpService:JSONEncode(data))
-    end)
-    
-    if success then
-        print("   ✅ Envoyé: " .. animal.name)
-    else
-        print("   ❌ Erreur: " .. tostring(err))
-    end
+    print("✅ Scan terminé: " .. scanned .. " serveurs testés")
 end
 
-local function scanAndSend()
-    print("═══════════════════════════════")
-    local results = scanCurrentServer()
-    
-    if #results > 0 then
-        for i = 1, math.min(5, #results) do
-            sendToServer(results[i])
-            task.wait(0.5)
-        end
-    end
-    print("═══════════════════════════════")
-end
-
--- GUI
+-- ===== GUI =====
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ScanGUI"
+ScreenGui.Name = "GlobalScanner"
 ScreenGui.Parent = Player:WaitForChild("PlayerGui")
 
 local Button = Instance.new("TextButton")
 Button.Size = UDim2.new(0, 200, 0, 40)
 Button.Position = UDim2.new(0.5, -100, 0.5, -20)
 Button.BackgroundColor3 = Color3.fromRGB(0, 180, 100)
-Button.Text = "🔍 SCAN + ENVOI"
+Button.Text = "🌍 SCAN GLOBAL"
 Button.TextColor3 = Color3.fromRGB(255, 255, 255)
 Button.Font = Enum.Font.GothamBold
 Button.TextSize = 16
 Button.Parent = ScreenGui
 
-Button.MouseButton1Click:Connect(scanAndSend)
+Button.MouseButton1Click:Connect(globalScan)
 
-task.wait(1)
-scanAndSend()
+print("✅ Global Scanner prêt !")
+print("🔍 Recherche de RemoteEvents...")
 
-print("✅ Scanner récursif prêt !")
+if InfoRemote then
+    print("   ✅ Remote trouvé: " .. InfoRemote.Name)
+else
+    print("   ❌ Aucun Remote de serveur trouvé")
+    print("   📝 Liste des Remotes disponibles:")
+    for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            print("      - " .. obj:GetFullName())
+        end
+    end
+end
