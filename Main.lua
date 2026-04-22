@@ -1,4 +1,4 @@
--- // AUTO DUP VOL - VERSION SIMPLE QUI MARCHE \\
+-- // AUTO DUP VOL - COMPLET AVEC DÉPLACEMENT DES SLOTS \\
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
@@ -14,8 +14,8 @@ ScreenGui.Parent = Player:WaitForChild("PlayerGui")
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 120)
-MainFrame.Position = UDim2.new(0.5, -125, 0.5, -60)
+MainFrame.Size = UDim2.new(0, 250, 0, 140)
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -70)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -37,7 +37,7 @@ Title.Parent = MainFrame
 
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Size = UDim2.new(1, 0, 0, 25)
-StatusLabel.Position = UDim2.new(0, 0, 0.3, 0)
+StatusLabel.Position = UDim2.new(0, 0, 0.25, 0)
 StatusLabel.BackgroundTransparency = 1
 StatusLabel.Text = "⚫ En attente de vol..."
 StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -45,9 +45,19 @@ StatusLabel.TextSize = 13
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.Parent = MainFrame
 
+local SlotLabel = Instance.new("TextLabel")
+SlotLabel.Size = UDim2.new(1, 0, 0, 20)
+SlotLabel.Position = UDim2.new(0, 0, 0.45, 0)
+SlotLabel.BackgroundTransparency = 1
+SlotLabel.Text = "Slots 1 & 2: Libres"
+SlotLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+SlotLabel.TextSize = 11
+SlotLabel.Font = Enum.Font.Gotham
+SlotLabel.Parent = MainFrame
+
 local DupeBtn = Instance.new("TextButton")
 DupeBtn.Size = UDim2.new(0.8, 0, 0, 35)
-DupeBtn.Position = UDim2.new(0.1, 0, 0.6, 0)
+DupeBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
 DupeBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
 DupeBtn.BorderSizePixel = 0
 DupeBtn.Text = "DUPER (V)"
@@ -72,10 +82,78 @@ local function findRemotes()
 end
 
 local remotes = findRemotes()
+local grabRemote = remotes["RE/StealService/Grab"]
+local stealComplete = remotes["RE/5c8f0dd0-0f9e-44ba-8f9b-197958b661ab"]
+
 print("🔍 Remotes trouvés:")
-for name, _ in pairs(remotes) do
-    if name:find("Steal") or name:find("Grab") then
-        print("   ✅ " .. name)
+print("   Grab: " .. (grabRemote and "✅" or "❌"))
+print("   StealComplete: " .. (stealComplete and "✅" or "❌"))
+
+-- ===== GESTION DES SLOTS =====
+local function getOurPodiums()
+    local Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
+    local ourChannel = Synchronizer:Get(Player)
+    if not ourChannel then return {} end
+    return ourChannel:Get("AnimalPodiums") or {}
+end
+
+local function findEmptySlot()
+    local podiums = getOurPodiums()
+    for i = 3, 200 do  -- On commence à 3 pour garder 1 et 2 libres
+        if podiums[i] == "Empty" or podiums[i] == nil then
+            return i
+        end
+    end
+    return nil
+end
+
+local function freeSlots1and2()
+    if not grabRemote then return end
+    
+    local podiums = getOurPodiums()
+    local moved = false
+    
+    for _, slot in pairs({1, 2}) do
+        if podiums[slot] and podiums[slot] ~= "Empty" then
+            local emptySlot = findEmptySlot()
+            if emptySlot then
+                print("📦 Déplacement du slot " .. slot .. " vers " .. emptySlot)
+                
+                -- Grab l'animal
+                pcall(function()
+                    grabRemote:FireServer("Grab", slot)
+                end)
+                
+                task.wait(0.15)
+                
+                -- Le placer dans le slot vide
+                pcall(function()
+                    grabRemote:FireServer("Place", emptySlot)
+                end)
+                
+                moved = true
+                task.wait(0.15)
+            end
+        end
+    end
+    
+    if moved then
+        SlotLabel.Text = "Slots 1 & 2: Libérés !"
+        SlotLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        task.wait(1)
+    end
+    
+    -- Mettre à jour l'affichage
+    podiums = getOurPodiums()
+    local slot1filled = podiums[1] and podiums[1] ~= "Empty"
+    local slot2filled = podiums[2] and podiums[2] ~= "Empty"
+    
+    if slot1filled or slot2filled then
+        SlotLabel.Text = "⚠️ Slots 1 & 2: Occupés"
+        SlotLabel.TextColor3 = Color3.fromRGB(255, 150, 0)
+    else
+        SlotLabel.Text = "Slots 1 & 2: Libres"
+        SlotLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
     end
 end
 
@@ -95,10 +173,10 @@ local function dupeCurrentSteal()
     StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
     DupeBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 0)
     
-    -- Essayer toutes les combinaisons de RemoteEvents
-    local stealComplete = remotes["RE/5c8f0dd0-0f9e-44ba-8f9b-197958b661ab"]
-    local grabRemote = remotes["RE/StealService/Grab"]
+    -- 1. Libérer les slots 1 et 2 AVANT la duplication
+    freeSlots1and2()
     
+    -- 2. Envoyer StealComplete (donne l'animal)
     if stealComplete then
         print("📡 Envoi StealComplete...")
         pcall(function()
@@ -108,6 +186,7 @@ local function dupeCurrentSteal()
     
     task.wait(0.2)
     
+    -- 3. Annuler chez la victime
     if grabRemote then
         print("📡 Annulation chez la victime...")
         for i = 1, 50 do
@@ -119,7 +198,7 @@ local function dupeCurrentSteal()
     
     task.wait(0.3)
     
-    -- Nettoyer l'animation
+    -- 4. Nettoyer l'animation
     Player:SetAttribute("Stealing", false)
     Player:SetAttribute("StealingIndex", "")
     
@@ -136,6 +215,10 @@ local function dupeCurrentSteal()
             end
         end
     end
+    
+    -- 5. Libérer les slots 1 et 2 APRÈS la duplication (au cas où)
+    task.wait(0.2)
+    freeSlots1and2()
     
     StatusLabel.Text = "✅ Duplication terminée !"
     StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
@@ -171,5 +254,25 @@ Player:GetAttributeChangedSignal("Stealing"):Connect(function()
     end
 end)
 
-print("✅ Script de duplication chargé !")
-print("📋 Liste des RemoteEvents disponibles dans la console (F9)")
+-- Mise à jour périodique des slots
+task.spawn(function()
+    while true do
+        task.wait(2)
+        if not Player:GetAttribute("Stealing") then
+            local podiums = getOurPodiums()
+            local slot1filled = podiums[1] and podiums[1] ~= "Empty"
+            local slot2filled = podiums[2] and podiums[2] ~= "Empty"
+            
+            if slot1filled or slot2filled then
+                SlotLabel.Text = "⚠️ Slots 1 & 2: Occupés"
+                SlotLabel.TextColor3 = Color3.fromRGB(255, 150, 0)
+            else
+                SlotLabel.Text = "Slots 1 & 2: Libres"
+                SlotLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            end
+        end
+    end
+end)
+
+print("✅ Script de duplication COMPLET chargé !")
+print("📦 Système de déplacement des slots 1 et 2 activé !")
